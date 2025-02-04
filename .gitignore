@@ -1,0 +1,5 @@
+/image_with_masks
+/modified_prostate_mask.nii
+/modified_prostate_mri.nii
+/requirements.txt
+/__pycache__
