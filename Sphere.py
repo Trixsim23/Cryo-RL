@@ -26,15 +26,21 @@ def visualize_removal_with_overlay(original_mri, modified_mri, original_mask, mo
     # Define normalization for overlay consistency
     norm = Normalize(vmin=np.min(original_mri), vmax=np.max(original_mri))
 
+
+    #removing the parts of the masks which do not have data
+
+
     # Original MRI 
     axes[0, 0].imshow(original_mri[:, :, slice_idx], cmap='gray', norm=norm)
     # axes[0, 0].imshow(original_mask[:, :, slice_idx], cmap='Reds', alpha=0.5)
+    axes[0, 0].imshow(np.max(original_mask[:, :, :], axis =2), cmap='summer', alpha=0.2)
     axes[0, 0].set_title("Original MRI with Mask")
     axes[0, 0].axis("off")
 
     # Modified MRI with mask overlay
     axes[0, 1].imshow(modified_mri[:, :, slice_idx], cmap='gray', norm=norm)
     axes[0, 1].imshow(modified_mask[:, :, slice_idx], cmap='Reds', alpha=0.5)
+    # axes[0, 0].imshow(np.max(modified_mask[:, :, :], axis =2), cmap='summer', alpha=0.2)
     axes[0, 1].set_title("Modified MRI with Mask")
     axes[0, 1].axis("off")
 
@@ -129,4 +135,4 @@ remove_sphere_from_prostate(
 #data on the gland mask - xyz(dimensions) -512x512x23 spacing (0.3516x0.3516x3.3) voxel units (253x253x23)
 #data on the  - xyz(dimensions) -512x512x23 spacing (0.3516x0.3516x3.3) voxel units (253x253x23)
 #initialising the MIP class 
-mip = MaximumIntensityProjection()
+# mip = MaximumIntensityProjection()
