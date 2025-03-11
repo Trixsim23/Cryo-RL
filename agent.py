@@ -20,13 +20,52 @@ def load_patient_data(patient_dir):
     mask_data = np.rot90(mask_img.get_fdata(), 1)
     lesion_data = np.rot90(lesion_img.get_fdata(), 1)
 
-    #downsample the data so that it is (128, 128, 20, 3)
-    mri_data = mri_data[:, :, :20]
-    mri_data = mri_data[::4, ::4, :]
-    mask_data = mask_data[::4, ::4, :]
-    lesion_data = lesion_data[::4, ::4, :]
-
-    return mri_data, mask_data, lesion_data
+    # Get original dimensions
+    orig_x, orig_y, orig_z = mri_data.shape
+    
+    # Define target shape
+    target_x, target_y, target_z = 128, 128, 20
+    
+    # Handle Z dimension (depth)
+    if orig_z > target_z:
+        # Select evenly spaced slices using array indexing
+        z_indices = np.linspace(0, orig_z - 1, target_z, dtype=int)
+        mri_data = mri_data[:, :, z_indices]
+        mask_data = mask_data[:, :, z_indices]
+        lesion_data = lesion_data[:, :, z_indices]
+    else:
+        # Pad with zeros if fewer than target_z slices
+        pad_size = target_z - orig_z
+        mri_data = np.pad(mri_data, ((0, 0), (0, 0), (0, pad_size)))
+        mask_data = np.pad(mask_data, ((0, 0), (0, 0), (0, pad_size)))
+        lesion_data = np.pad(lesion_data, ((0, 0), (0, 0), (0, pad_size)))
+    
+    # Handle X and Y dimensions using vectorized operations
+    # Create index arrays for the original data positions
+    x_indices = np.clip((np.arange(target_x) * orig_x / target_x).astype(int), 0, orig_x - 1)
+    y_indices = np.clip((np.arange(target_y) * orig_y / target_y).astype(int), 0, orig_y - 1)
+    
+    # For MRI data, use a block averaging approach
+    # We'll use a simplified approach with meshgrid for indexing
+    mri_downsampled = np.zeros((target_x, target_y, target_z))
+    X, Y = np.meshgrid(x_indices, y_indices, indexing='ij')
+    
+    # Simple point sampling for all data types
+    mri_downsampled = mri_data[X, Y, :]
+    mask_downsampled = mask_data[X, Y, :]
+    lesion_downsampled = lesion_data[X, Y, :]
+    
+    # For binary masks, ensure they remain binary after resampling
+    if mask_data.dtype == bool or np.array_equal(np.unique(mask_data), np.array([0, 1])):
+        mask_downsampled = mask_downsampled.round().astype(mask_data.dtype)
+    
+    if lesion_data.dtype == bool or np.array_equal(np.unique(lesion_data), np.array([0, 1])):
+        lesion_downsampled = lesion_downsampled.round().astype(lesion_data.dtype)
+    
+    # Verify final shape
+    assert mri_downsampled.shape == (target_x, target_y, target_z), f"Expected shape ({target_x}, {target_y}, {target_z}), got {mri_downsampled.shape}"
+    
+    return mri_downsampled, mask_downsampled, lesion_downsampled
 
 if __name__ == "__main__":
     # Directory containing patient data
