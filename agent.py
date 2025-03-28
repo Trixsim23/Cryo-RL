@@ -1,4 +1,5 @@
 import os
+import time 
 import nibabel as nib
 import numpy as np
 import matplotlib.pyplot as plt
@@ -115,7 +116,8 @@ if __name__ == "__main__":
     checkpoint_callback = CheckpointCallback(save_freq=5000, save_path="./logs/checkpoints/")
 
     # Train the model
-    model.learn(total_timesteps=50000, callback=[eval_callback, checkpoint_callback])
+    #maybe change the time steps to less......
+    model.learn(total_timesteps=1000, callback=[eval_callback, checkpoint_callback])
 
     # Save the trained model
     model.save("ppo_sphere_placement")
@@ -138,6 +140,7 @@ if __name__ == "__main__":
         rewards.append(reward)
 
     print(f"Evaluation complete. Total reward: {total_reward}")
+    print (rewards)
 
     # Plot rewards
     plt.figure()
@@ -147,8 +150,14 @@ if __name__ == "__main__":
     plt.ylabel('Total Reward', fontsize=14)
     plt.grid(True)
     
+
+    #the current date and time is 
+    current_time = time.strftime("%Y%m%d-%H%M%S")
     # Save the figure to the results folder
-    plt.savefig(os.path.join('results', 'rewards.png'))
+    folder = os.path.join(".", "results")
+    if not os.path.exists(folder):
+        os.makedirs(folder)
+    plt.savefig(os.path.join('results', f'rewards{current_time}.png'))
     plt.close()
 
     # Visualize the result

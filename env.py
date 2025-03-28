@@ -2,6 +2,7 @@ import gymnasium as gym
 from gym import spaces
 import numpy as np
 import nibabel as nib
+import time 
 from scipy.ndimage import center_of_mass
 import os
 from matplotlib.colors import Normalize
@@ -201,9 +202,13 @@ def visualize_removal_with_overlay(original_mri, modified_mri, original_mask, mo
     axes[1, 1].set_title("Modified Masks")
     axes[1, 1].axis("off")
 
+    current_time = time.strftime("%Y%m%d-%H%M%S")
+    folder = os.path.join(".", "results")
+    if not os.path.exists(folder):
+        os.makedirs(folder)
     plt.tight_layout()
         # Save the figure to the results folder
-    plt.savefig(os.path.join('results', 'visualize.png'))
+    plt.savefig(os.path.join('results', f'visualize{current_time}.png'))
     plt.show()
     plt.close()
 
@@ -234,7 +239,7 @@ if __name__ == "__main__":
     done = False
     rewards = []
     #change the range here 
-    for i in range(1000):
+    for i in range(20):
         if done:
             obs = env.reset()
         action = env.action_space.sample()
