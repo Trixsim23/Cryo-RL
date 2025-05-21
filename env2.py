@@ -1,3 +1,5 @@
+#this file is the one with out the downsampling 
+
 import gymnasium as gym
 from gym import spaces
 import numpy as np
@@ -16,11 +18,6 @@ class SpherePlacementEnv(gym.Env):
         self.mask_data = mask_data
         self.lesion_data = lesion_data
 
-        #downsampling the data 
-        # self.mri_data = mri_data[::4, ::4, :]
-        # self.mask_data = mask_data[::4, ::4, :]
-        # self.lesion_data = lesion_data[::4, ::4, :]
-
         #radius is hard coded
         self.sphere_radius = sphere_radius
 
@@ -34,8 +31,8 @@ class SpherePlacementEnv(gym.Env):
         self.observation_space = spaces.Box(
             low=0, high= 1, shape=(mri_data.shape[0],mri_data.shape[1],mri_data.shape[2],3), dtype=np.int32
         )
-        print ("the observation space shape is ")
-        print (self.observation_space.shape)
+        print(f"Environment initialized with {self.lesion_coords.shape[0]} valid lesion coordinates")
+        
         self.max_spheres = 3  # Max spheres per episode
         self.sphere_count = 0
         self.sphere_positions = []  # Track sphere placements
@@ -48,7 +45,7 @@ class SpherePlacementEnv(gym.Env):
     def _get_lesion_grid(self):
         # Get the coordinates of the lesion within the prostate mask
         lesion_coords = np.argwhere((self.lesion_data > 0) & (self.mask_data > 0))
-        # print (lesion_coords.shape)
+        # print(f"Found {lesion_coords.shape[0]} valid lesion coordinates")
         return lesion_coords
 
     def _evaluate_location(self, center):
@@ -81,16 +78,15 @@ class SpherePlacementEnv(gym.Env):
         return score
 
     def step(self, action):
-        print ("lesion coords and action space is")
-        print (self.lesion_coords.shape)
-        print (self.action_space.n)
-        print(action)
+        # Ensure action is within valid range
+        action = int(action) % self.lesion_coords.shape[0]  # Use modulo to handle out-of-range actions
+        
         # Evaluate all possible locations and select the best one
         coord = self.lesion_coords[action]
-        
+
         # Add random noise to the placement (limited to around 5 voxels in x, y, z)
         noise = np.random.randint(-5, 5, size=3)
-        coord = np.clip(self.lesion_coords[action] + noise, [0, 0, 0], np.array(self.mri_data.shape) - 1)
+        coord = np.clip(coord + noise, [0, 0, 0], np.array(self.mri_data.shape) - 1)
 
         score = self._evaluate_location(coord)
 
@@ -100,9 +96,6 @@ class SpherePlacementEnv(gym.Env):
         self._remove_sphere_from_data(coord)
         done = self.sphere_count >= self.max_spheres
         obs = np.concatenate([np.expand_dims(self.mri_data,-1), np.expand_dims(self.modified_mask,-1),np.expand_dims(self.modified_lesion,-1)], axis=-1)
-        # print ("step")
-        # print(self.mri_data.shape)
-        # print (obs.shape)
         
         return obs, reward, done, {"sphere_positions": self.sphere_positions}
 
@@ -128,14 +121,15 @@ class SpherePlacementEnv(gym.Env):
         self.modified_mask[x_range[:, None, None], y_range[None, :, None], z_range[None, None, :]] *= ~sphere_mask
         self.modified_lesion[x_range[:, None, None], y_range[None, :, None], z_range[None, None, :]] *= ~sphere_mask
 
-
     def reset(self):
+        #should be added for reset 
         self.mask_data = self.mask_data.copy()
         self.lesion_data = self.lesion_data.copy()
         self.sphere_count = 0
         self.sphere_positions = []
         self.modified_mask = self.mask_data.copy()
         self.modified_lesion = self.lesion_data.copy()
+        #new additions 
         self.lesion_coords= self._get_lesion_grid()
         obs = np.concatenate([np.expand_dims(self.mri_data,-1), np.expand_dims(self.modified_mask,-1),np.expand_dims(self.modified_lesion,-1)], axis=-1)
         return obs
@@ -144,8 +138,8 @@ class SpherePlacementEnv(gym.Env):
         print(f"Spheres placed: {self.sphere_count}/{self.max_spheres}")
         print(f"Sphere positions: {self.sphere_positions}")
 
-    def visualize_spheres(self, slice_idx):
-        visualize_removal_with_overlay(
+    def visualize_spheres(self, slice_idx, show=True):
+        fig = visualize_removal_with_overlay(
             self.mri_data,
             self.mri_data,  # MRI data is not modified in this context
             self.mask_data,
@@ -153,24 +147,38 @@ class SpherePlacementEnv(gym.Env):
             self.lesion_data,
             self.modified_lesion,
             slice_idx,
+            show=show
         )
+        return fig
 
 
-def visualize_removal_with_overlay(original_mri, modified_mri, original_mask, modified_mask, original_lesion, modified_lesion, slice_idx):
+def visualize_removal_with_overlay(original_mri, modified_mri, original_mask, modified_mask, original_lesion, modified_lesion, slice_idx, show=True):
     """
     Visualizes the MRI with an overlay of the mask before and after removal of the spherical volume.
+    Returns the figure handle for potential saving.
     """
     fig, axes = plt.subplots(2, 2, figsize=(10, 8))
 
     # Normalize MRI volumes to [0, 1]
-    original_mri_norm = (original_mri - np.min(original_mri)) / (np.max(original_mri) - np.min(original_mri))
-    modified_mri_norm = (modified_mri - np.min(modified_mri)) / (np.max(modified_mri) - np.min(modified_mri))
+    original_mri_norm = (original_mri - np.min(original_mri)) / (np.max(original_mri) - np.min(original_mri) + 1e-10)
+    modified_mri_norm = (modified_mri - np.min(modified_mri)) / (np.max(modified_mri) - np.min(modified_mri) + 1e-10)
 
-    # Normalize masks to [0, 1]
-    original_mask_norm = (original_mask - np.min(original_mask)) / (np.max(original_mask) - np.min(original_mask))
-    modified_mask_norm = (modified_mask - np.min(modified_mask)) / (np.max(modified_mask) - np.min(modified_mask))
-    original_lesion_norm = (original_lesion - np.min(original_lesion)) / (np.max(original_lesion) - np.min(original_lesion)) 
-    modified_lesion_norm = (modified_lesion - np.min(modified_lesion)) / (np.max(modified_lesion) - np.min(modified_lesion))  
+    # Normalize masks to [0, 1] different way of normalisation
+    original_mask_norm = original_mask.astype(float)
+    if np.max(original_mask) > 0:
+        original_mask_norm = original_mask_norm / np.max(original_mask)
+        
+    modified_mask_norm = modified_mask.astype(float)
+    if np.max(modified_mask) > 0:
+        modified_mask_norm = modified_mask_norm / np.max(modified_mask)
+        
+    original_lesion_norm = original_lesion.astype(float)
+    if np.max(original_lesion) > 0:
+        original_lesion_norm = original_lesion_norm / np.max(original_lesion)
+        
+    modified_lesion_norm = modified_lesion.astype(float)
+    if np.max(modified_lesion) > 0:
+        modified_lesion_norm = modified_lesion_norm / np.max(modified_lesion)
 
     # Mask out values in the prostate mask that are 0
     original_mask_masked = np.ma.masked_where(original_mask_norm == 0, original_mask_norm)
@@ -209,15 +217,20 @@ def visualize_removal_with_overlay(original_mri, modified_mri, original_mask, mo
     axes[1, 1].set_title("Modified Masks")
     axes[1, 1].axis("off")
 
+    plt.tight_layout()
+    
+    # Save and/or show
     current_time = time.strftime("%Y%m%d-%H%M%S")
     folder = os.path.join(".", "results")
     if not os.path.exists(folder):
         os.makedirs(folder)
-    plt.tight_layout()
-        # Save the figure to the results folder
+    
     plt.savefig(os.path.join('results', f'visualize{current_time}.png'))
-    plt.show()
-    plt.close()
+    
+    if show:
+        plt.show()
+    
+    return fig
 
 
 # Example usage
