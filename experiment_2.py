@@ -23,7 +23,7 @@ from main_env import SpherePlacementEnv, get_max_action_space_size, create_stand
 from typing import List, Dict, Tuple
 
 # Import all necessary functions from main_agent.py
-from main_agent import (
+from main_agent_2 import (
     load_and_preprocess_patient_data,
     create_sphere_mask,
     calculate_dice_score,

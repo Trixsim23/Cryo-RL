@@ -35,7 +35,7 @@ from stable_baselines3 import PPO
 from main_env import SpherePlacementEnv, get_max_action_space_size, create_standardized_environments
 
 # Import all enhanced functions for comprehensive evaluation
-from agent_vis_2 import (
+from main_agent import (
     resize_volume,
     load_and_preprocess_patient_data,
     create_sphere_mask,
