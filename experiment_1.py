@@ -5,7 +5,7 @@ Fixed Experiment 1: Current Method (Baseline) with Standardized Action Spaces
 This fixes the action space mismatch error by standardizing action spaces across all environments.
 
 Usage:
-    python experiment_1_fixed.py
+    python experiment_1.py
 
 Results saved in: ./experiment_1_results_TIMESTAMP/
 """
@@ -26,12 +26,12 @@ from agent_vis_2 import (
     create_sphere_mask,
     calculate_dice_score,
     enhanced_visualize_spheres_with_numbers,
-    visualize_multi_view_spheres,                    # NEW: Multi-view visualization
-    visualize_3d_volume_rendering,                   # NEW: 3D visualization
-    visualize_individual_step_placement,             # ENHANCED: Now returns multiple paths
+    visualize_multi_view_spheres,                    
+    visualize_3d_volume_rendering,                   
+    visualize_individual_step_placement,             
     create_sphere_progression_summary,
-    create_final_comprehensive_evaluation,           # NEW: Comprehensive final analysis
-    run_enhanced_evaluation_loop,                    # NEW: Enhanced evaluation with all visualization types
+    create_final_comprehensive_evaluation,           
+    run_enhanced_evaluation_loop,                    
     TrainingCallback
 )
 
@@ -70,18 +70,9 @@ def get_filtered_dataset(filtered_dir="./filtered_dataset"):
 # ============================================================================
 
 def run_experiment_1():
-    """Run Experiment 1: Current Method (Baseline) with fixed action spaces"""
-    
-    print("=" * 60)
+    """Run Experiment 1: Current Method (Baseline) with action spaces"""
+   
     print("EXPERIMENT 1: CURRENT METHOD (BASELINE) - FIXED")
-    print("=" * 60)
-    print("This experiment uses your current RL approach with fixes:")
-    print("- Discrete action space (STANDARDIZED)")
-    print("- Sparse reward function")
-    print("- PPO algorithm")
-    print("- Fixed environment action space compatibility")
-    print("- Training on 5 random patients with sequential approach")
-    print("=" * 60)
     
     # Setup results folder
     current_time = time.strftime("%Y%m%d-%H%M%S")
@@ -194,7 +185,7 @@ def run_experiment_1():
     # TRAINING PARAMETERS
     # ============================================================================
     #supposed to be 100000
-    timesteps_per_patient = 500000  # increased for more thorough training
+    timesteps_per_patient = 50000000  # increased for more thorough training
     total_timesteps = len(train_envs) * timesteps_per_patient
     eval_freq = 2000
     
@@ -253,7 +244,7 @@ def run_experiment_1():
     print(f"Model saved to {model_path}")
     
     # ============================================================================
-    # ENHANCED TRAINING PROGRESS VISUALIZATION
+    # TRAINING PROGRESS VIZ
     # ============================================================================
     
     # Training progress plot
@@ -300,7 +291,7 @@ def run_experiment_1():
     plt.close()
     
     # ============================================================================
-    # ENHANCED FINAL EVALUATION WITH COMPREHENSIVE VISUALIZATION
+    # FINAL EVAL
     # ============================================================================
     
     print ("\n Running final evaluation on the test set")
@@ -308,11 +299,10 @@ def run_experiment_1():
     # Option to enable 3D visualization (computationally expensive)
     create_3d_visualizations = True  # Set to True if you want 3D visualizations
     if create_3d_visualizations:
-        print("✓ 3D volume rendering (ENABLED)")
+        print("3D RENDER ENABLED")
     else:
-        print("⚪ 3D volume rendering (DISABLED for speed - set create_3d_visualizations=True to enable)")
+        print("NO 3D RENDER")
     
-    print("="*60)
     
     # Use the new enhanced evaluation loop
     final_rewards, final_dice_scores, comprehensive_results = run_enhanced_evaluation_loop(
@@ -320,7 +310,7 @@ def run_experiment_1():
     )
     
     # ============================================================================
-    # ENHANCED RESULTS SUMMARY AND ANALYSIS
+    #  RESULTS SUMMARY AND ANALYSIS
     # ============================================================================
     
     # Summary statistics
@@ -342,7 +332,7 @@ def run_experiment_1():
         mean_coverage = std_coverage = mean_spheres = 0
     
     print(f"\n" + "="*60)
-    print("EXPERIMENT 1 COMPREHENSIVE RESULTS")
+    print("EXPERIMENT 1  RESULTS")
     print("="*60)
     print(f"Training Configuration:")
     print(f"  Patients trained: {len(train_envs)}")
@@ -439,8 +429,8 @@ def run_experiment_1():
     
     # Save enhanced results data
     results_data = {
-        'experiment_name': 'Enhanced Experiment 1: Current Method with Comprehensive Visualization',
-        'method': 'Current Method Enhanced - Comprehensive Visualization',
+        'experiment_name': 'SPARSE REWARDS Visualization',
+        'method': 'SPARSE REWARDS',
         'algorithm': 'PPO',
         'policy': 'MlpPolicy',
         'training_patients': [os.path.basename(p) for p in train_patients],
@@ -473,14 +463,14 @@ def run_experiment_1():
         }
     }
     
-    np.savez(os.path.join(results_folder, 'enhanced_experiment_1_results.npz'), **results_data)
+    np.savez(os.path.join(results_folder, 'experiment_1_results.npz'), **results_data)
     
     # Save comprehensive summary report
-    with open(os.path.join(results_folder, 'enhanced_experiment_1_summary.txt'), 'w') as f:
-        f.write("ENHANCED EXPERIMENT 1: CURRENT METHOD WITH COMPREHENSIVE VISUALIZATION\n")
+    with open(os.path.join(results_folder, 'experiment_1_summary.txt'), 'w') as f:
+        f.write("EXPERIMENT 1\n")
         f.write("=" * 80 + "\n\n")
         f.write(f"Experiment completed: {current_time}\n")
-        f.write(f"Method: Current Method Enhanced with Comprehensive Visualization\n")
+        f.write(f"Method: SPARSE REWARDS\n")
         f.write(f"Algorithm: PPO\n")
         f.write(f"Policy: MlpPolicy\n")
         f.write(f"Training time: {training_time:.2f} seconds\n")
@@ -489,16 +479,10 @@ def run_experiment_1():
         f.write(f"Max action space size: {max_action_space}\n")
         f.write(f"Evaluation frequency: {eval_freq:,} steps\n\n")
         
-        f.write(f"Visualization Features:\n")
-        f.write(f"✓ Enhanced 2D visualization (original style)\n")
-        f.write(f"✓ Multi-view medical imaging (sagittal, coronal, axial)\n")
-        f.write(f"✓ Detailed quantitative analysis plots\n")
-        f.write(f"✓ Sphere placement progression summaries\n")
-        f.write(f"✓ Comprehensive JSON results for each patient\n")
         if create_3d_visualizations:
-            f.write(f"✓ 3D volume rendering\n")
+            f.write(f" 3D volume rendering\n")
         else:
-            f.write(f"⚪ 3D volume rendering (disabled for speed)\n")
+            f.write(f"NO 3D\n")
         f.write("\n")
         
         f.write(f"Training Patients:\n")
@@ -541,16 +525,15 @@ def run_experiment_1():
     print("ENHANCED EXPERIMENT 1 COMPLETED SUCCESSFULLY!")
     print("="*60)
     print(f"Results saved in: {results_folder}")
-    print(f"Summary report: {os.path.join(results_folder, 'enhanced_experiment_1_summary.txt')}")
+    print(f"Summary report: {os.path.join(results_folder, 'experiment_1_summary.txt')}")
 
     
     if create_3d_visualizations:
-        print(f"  ✓ 3D volume renderings")
+        print(f"  3D volume renderings")
     else:
-        print(f"  ⚪ 3D volume renderings (disabled for speed)")
+        print(f"   3D volume renderings (disabled for speed)")
     
     
-    print("="*60)
 
 if __name__ == "__main__":
     run_experiment_1()

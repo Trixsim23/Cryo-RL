@@ -108,13 +108,27 @@ def calculate_dice_score(prediction_mask, target_mask):
     dice = 2.0 * intersection / total
     return dice
 
-# QUICK FIX: Replace your enhanced_visualize_spheres_with_numbers function with this:
+# COMPLETE REPLACEMENT for visualization functions in main_agent.py
+# Replace the enhanced_visualize_spheres_with_numbers function with this:
 
-def enhanced_visualize_spheres_with_numbers(env, slice_idx, save_path=None, show=True, step_info=""):
+def enhanced_visualize_spheres_with_numbers(env, slice_idx=None, save_path=None, show=True, step_info=""):
     """
-    FIXED: Enhanced visualization with consistent display across all panels
+    FIXED: Enhanced visualization with automatic slice selection and proper sphere visibility
     """
-    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
+    # Auto-select slice that shows most spheres if not provided
+    if slice_idx is None:
+        if env.sphere_positions:
+            # Find slice that contains or is closest to most spheres
+            z_positions = [pos[2] for pos in env.sphere_positions]
+            slice_idx = int(np.median(z_positions))
+            print(f"Auto-selected slice {slice_idx} based on sphere positions: {z_positions}")
+        else:
+            slice_idx = env.mri_data.shape[2] // 2
+    
+    # Ensure slice_idx is within bounds
+    slice_idx = max(0, min(slice_idx, env.mri_data.shape[2] - 1))
+    
+    fig, axes = plt.subplots(2, 2, figsize=(15, 12))
 
     # Normalize MRI volumes to [0, 1]
     original_mri_norm = (env.mri_data - np.min(env.mri_data)) / (np.max(env.mri_data) - np.min(env.mri_data) + 1e-10)
@@ -136,98 +150,130 @@ def enhanced_visualize_spheres_with_numbers(env, slice_idx, save_path=None, show
     if np.max(env.modified_lesion) > 0:
         modified_lesion_norm = modified_lesion_norm / np.max(env.modified_lesion)
 
-    # FIXED: Use same slice for all panels
+    # Create masked arrays
     original_mask_masked = np.ma.masked_where(original_mask_norm[:, :, slice_idx] == 0, original_mask_norm[:, :, slice_idx])
     modified_mask_masked = np.ma.masked_where(modified_mask_norm[:, :, slice_idx] == 0, modified_mask_norm[:, :, slice_idx])
     original_lesion_masked = np.ma.masked_where(original_lesion_norm[:, :, slice_idx] == 0, original_lesion_norm[:, :, slice_idx])
     modified_lesion_masked = np.ma.masked_where(modified_lesion_norm[:, :, slice_idx] == 0, modified_lesion_norm[:, :, slice_idx])
 
-    # Define normalization for overlay consistency
-    norm = Normalize(vmin=0, vmax=1)
+    # FIXED: Use more distinct colors and larger markers
+    sphere_colors = ['red', 'cyan', 'yellow', 'magenta', 'lime']
+    sphere_markers = ['o', 's', '^', 'D', 'P']
 
-    # Define colors for each sphere (up to 3 spheres)
-    sphere_colors = ['red', 'blue', 'green']
-    sphere_markers = ['o', 's', '^']  # circle, square, triangle
-
-    # FIXED: Original MRI with mask overlay - NOW CONSISTENT
-    axes[0, 0].imshow(original_mri_norm[:, :, slice_idx], cmap='gray', norm=norm)
-    axes[0, 0].imshow(original_mask_masked, cmap='Blues', alpha=0.4,vmin=0, vmax=1)     # FIXED: Same colormap
-    axes[0, 0].imshow(original_lesion_masked, cmap='Reds', alpha=0.6,vmin=0, vmax=1)    # FIXED: Same colormap
+    # Original MRI with mask overlay
+    axes[0, 0].imshow(original_mri_norm[:, :, slice_idx], cmap='gray', vmin=0, vmax=1)
+    axes[0, 0].imshow(original_mask_masked, cmap='Blues', alpha=0.3, vmin=0, vmax=1)
+    axes[0, 0].imshow(original_lesion_masked, cmap='Reds', alpha=0.5, vmin=0, vmax=1)
     axes[0, 0].set_title("Original MRI with Masks")
     axes[0, 0].axis("off")
 
-    # Modified MRI with mask overlay + Individual Sphere Markers
-    axes[0, 1].imshow(original_mri_norm[:, :, slice_idx], cmap='gray', norm=norm)  # Use original MRI
-    axes[0, 1].imshow(modified_mask_masked, cmap='Blues', alpha=0.4,vmin=0, vmax=1)
-    axes[0, 1].imshow(modified_lesion_masked, cmap='Reds', alpha=0.6,vmin=0, vmax=1)
+    # Modified MRI with enhanced sphere markers
+    axes[0, 1].imshow(original_mri_norm[:, :, slice_idx], cmap='gray', vmin=0, vmax=1)
+    axes[0, 1].imshow(modified_mask_masked, cmap='Blues', alpha=0.3, vmin=0, vmax=1)
+    axes[0, 1].imshow(modified_lesion_masked, cmap='Reds', alpha=0.5, vmin=0, vmax=1)
     
-    # Add individual sphere markers
+    # FIXED: Enhanced sphere visualization with debugging
+    sphere_info = []
+    spheres_visible = 0
+    
+    print(f"Visualizing {len(env.sphere_positions)} spheres on slice {slice_idx}")
+    
     for i, sphere_pos in enumerate(env.sphere_positions):
         x, y, z = sphere_pos
-        if abs(z - slice_idx) <= 2:  # Show spheres close to current slice
+        z_distance = abs(z - slice_idx)
+        
+        print(f"  Sphere {i+1}: pos=({x}, {y}, {z}), z_dist={z_distance}")
+        
+        # FIXED: Show spheres within larger range with transparency
+        if z_distance <= 3:  # Increased from 2 to 3
             color = sphere_colors[i % len(sphere_colors)]
             marker = sphere_markers[i % len(sphere_markers)]
             
-            # Add numbered marker
-            axes[0, 1].scatter(y, x, s=200, c=color, marker=marker, 
-                             edgecolors='white', linewidth=2, alpha=0.9, zorder=10)
-            axes[0, 1].text(y, x, str(i+1), ha='center', va='center', 
-                           fontsize=12, fontweight='bold', color='white', zorder=11)
+            # Calculate alpha based on distance
+            alpha = max(0.4, 1.0 - (z_distance / 3.0))
+            
+            # FIXED: Much larger, more visible markers with black outline
+            scatter = axes[0, 1].scatter(y, x, s=800, c=color, marker=marker, 
+                                       edgecolors='black', linewidth=4, alpha=alpha, zorder=10)
+            
+            # FIXED: Larger text with better contrast
+            text = axes[0, 1].text(y, x, str(i+1), ha='center', va='center', 
+                                 fontsize=20, fontweight='bold', color='white', zorder=11,
+                                 bbox=dict(boxstyle="circle,pad=0.15", facecolor='black', alpha=0.8))
+            
+            spheres_visible += 1
+            sphere_info.append(f'Sphere {i+1}: ({x}, {y}, {z}) - Z-dist: {z_distance}')
     
-    axes[0, 1].set_title(f"Modified MRI with Numbered Spheres {step_info}")
+    print(f"  {spheres_visible} spheres visible on this slice")
+    
+    axes[0, 1].set_title(f"Modified MRI with Numbered Spheres {step_info}\nSlice: {slice_idx} ({spheres_visible}/{len(env.sphere_positions)} visible)")
     axes[0, 1].axis("off")
 
     # Original masks
-    axes[1, 0].imshow(original_mask_masked, cmap='Blues', alpha=0.7,vmin=0, vmax=1)
-    axes[1, 0].imshow(original_lesion_masked, cmap='Reds', alpha=0.8,vmin=0, vmax=1)
+    axes[1, 0].imshow(original_mask_masked, cmap='Blues', alpha=0.7, vmin=0, vmax=1)
+    axes[1, 0].imshow(original_lesion_masked, cmap='Reds', alpha=0.8, vmin=0, vmax=1)
     axes[1, 0].set_title("Original Masks")
     axes[1, 0].axis("off")
 
-    # Modified masks with Individual Sphere Markers
-    axes[1, 1].imshow(modified_mask_masked, cmap='Blues', alpha=0.7,vmin=0, vmax=1)
-    axes[1, 1].imshow(modified_lesion_masked, cmap='Reds', alpha=0.8,vmin=0, vmax=1)
+    # Modified masks with enhanced sphere markers
+    axes[1, 1].imshow(modified_mask_masked, cmap='Blues', alpha=0.7, vmin=0, vmax=1)
+    axes[1, 1].imshow(modified_lesion_masked, cmap='Reds', alpha=0.8, vmin=0, vmax=1)
     
-    # Add individual sphere markers to mask view
+    # Add enhanced sphere markers to mask view
     for i, sphere_pos in enumerate(env.sphere_positions):
         x, y, z = sphere_pos
-        if abs(z - slice_idx) <= 2:  # Show spheres close to current slice
+        z_distance = abs(z - slice_idx)
+        if z_distance <= 3:
             color = sphere_colors[i % len(sphere_colors)]
             marker = sphere_markers[i % len(sphere_markers)]
+            alpha = max(0.4, 1.0 - (z_distance / 3.0))
             
-            # Add numbered marker
-            axes[1, 1].scatter(y, x, s=200, c=color, marker=marker, 
-                             edgecolors='white', linewidth=2, alpha=0.9, zorder=10)
+            axes[1, 1].scatter(y, x, s=800, c=color, marker=marker, 
+                             edgecolors='black', linewidth=4, alpha=alpha, zorder=10)
             axes[1, 1].text(y, x, str(i+1), ha='center', va='center', 
-                           fontsize=12, fontweight='bold', color='white', zorder=11)
+                           fontsize=20, fontweight='bold', color='white', zorder=11,
+                           bbox=dict(boxstyle="circle,pad=0.15", facecolor='black', alpha=0.8))
     
     axes[1, 1].set_title(f"Modified Masks with Numbered Spheres {step_info}")
     axes[1, 1].axis("off")
 
-    # Add legend for sphere markers
+    # Enhanced legend with detailed sphere information
     if env.sphere_positions:
         legend_elements = []
         for i in range(len(env.sphere_positions)):
+            x, y, z = env.sphere_positions[i]
             color = sphere_colors[i % len(sphere_colors)]
             marker = sphere_markers[i % len(sphere_markers)]
+            z_distance = abs(z - slice_idx)
+            
+            # Indicate if sphere is visible on current slice
+            visibility = "visible" if z_distance <= 3 else "hidden"
+            label = f'Sphere {i+1} (z={z}, {visibility})'
+            
             legend_elements.append(plt.Line2D([0], [0], marker=marker, color='w', 
-                                            markerfacecolor=color, markersize=10, 
-                                            markeredgecolor='white', markeredgewidth=2,
-                                            label=f'Sphere {i+1}'))
+                                            markerfacecolor=color, markersize=15, 
+                                            markeredgecolor='black', markeredgewidth=3,
+                                            label=label))
         
-        axes[0, 1].legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(0, 1))
+        axes[0, 1].legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(0, 1), fontsize=9)
 
     plt.tight_layout()
     
-    # Save the figure if save_path is provided
+    # Print detailed sphere information
+    if sphere_info:
+        print(f"\nDetailed sphere information for slice {slice_idx}:")
+        for info in sphere_info:
+            print(f"  {info}")
+    
+    # Save the figure
     if save_path:
-        plt.savefig(save_path, dpi=150, bbox_inches='tight')
+        plt.savefig(save_path, dpi=200, bbox_inches='tight')
     else:
-        # Use default save path if none provided
         current_time = time.strftime("%Y%m%d-%H%M%S")
         folder = os.path.join(".", "results")
         if not os.path.exists(folder):
             os.makedirs(folder)
-        plt.savefig(os.path.join('results', f'enhanced_visualize_{step_info}_{current_time}.png'))
+        plt.savefig(os.path.join('results', f'enhanced_visualize_{step_info}_{current_time}.png'), dpi=200)
     
     if show:
         plt.show()
@@ -236,21 +282,26 @@ def enhanced_visualize_spheres_with_numbers(env, slice_idx, save_path=None, show
     
     return fig
 
+
 def visualize_individual_step_placement(env, step_num, save_folder, patient_id, dice_score=None):
     """
-    Visualize individual step with enhanced sphere visualization
+    FIXED: Simplified individual step visualization without multi-slice view
     """
-    slice_idx = env.mri_data.shape[2] // 2
+    # Auto-select best slice if spheres exist
+    if env.sphere_positions:
+        z_positions = [pos[2] for pos in env.sphere_positions]
+        slice_idx = int(np.median(z_positions))
+    else:
+        slice_idx = env.mri_data.shape[2] // 2
     
     # Prepare step info
     step_info = f"Step {step_num}"
     if dice_score is not None:
         step_info += f" (Dice: {dice_score:.3f})"
     
-    # Create enhanced visualization
+    # Create the enhanced visualization with auto slice selection
     save_path = os.path.join(save_folder, f'enhanced_step_patient_{patient_id}_step_{step_num}.png')
-    
-    fig = enhanced_visualize_spheres_with_numbers(
+    enhanced_visualize_spheres_with_numbers(
         env=env,
         slice_idx=slice_idx,
         save_path=save_path,

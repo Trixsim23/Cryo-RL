@@ -28,7 +28,7 @@ Key differences from Experiment 1:
 - COMPREHENSIVE COVERAGE TRACKING AND REPORTING
 
 Usage:
-    python exp3_enhanced.py
+    python exp3.py
 
 Results saved in: ./experiment_3_enhanced_coverage_TIMESTAMP/
 """
@@ -373,11 +373,11 @@ def create_dense_reward_environments(patient_dirs, max_action_space=None, target
 # EXPERIMENT 3: DENSE REWARD RL - ENHANCED WITH COMPREHENSIVE COVERAGE TRACKING
 # ============================================================================
 def run_experiment_3_enhanced_coverage():
-    """Run Experiment 3: Dense Reward RL - ENHANCED with comprehensive coverage tracking like Experiment 1"""
+    """Run Experiment 3: """
     
     print("=" * 80)
-    print("EXPERIMENT 3: DENSE REWARD RL - alt")
-   
+    print("EXPERIMENT 3: DENSE REWARD RL ")
+    print("=" * 80)
 
     
     # Setup results folder
@@ -396,7 +396,7 @@ def run_experiment_3_enhanced_coverage():
                 raise ValueError(f"Need at least 5 patients for training, found {len(patient_folders)}")
         
         # ============================================================================
-        # dataset split with random
+        # DATASET SPLIT WITH RANDOM SEED
         # ============================================================================
         
         import random
@@ -409,7 +409,7 @@ def run_experiment_3_enhanced_coverage():
         # Adaptive split based on available patients
         num_patients = len(shuffled_patients)
         if num_patients >= 35:
-             # Ideal case: 5/15/15 split
+            # Ideal case: 1/15/15 split (1 for training like exp1.py)
             train_patients = shuffled_patients[:1]
             val_patients = shuffled_patients[1:15]
             test_patients = shuffled_patients[15:30]
@@ -495,7 +495,7 @@ def run_experiment_3_enhanced_coverage():
     # TRAINING PARAMETERS
     # ============================================================================
     
-    timesteps_per_patient = 1000000  # Increased for better training
+    timesteps_per_patient = 500000000  # Increased for better training
     total_timesteps = len(train_envs) * timesteps_per_patient
     eval_freq = 2000
     
@@ -554,7 +554,7 @@ def run_experiment_3_enhanced_coverage():
     print(f"Model saved to {model_path}")
     
     # ============================================================================
-    # TRAINING PROGRESS VISUALIZATION
+    # ENHANCED TRAINING PROGRESS VISUALIZATION
     # ============================================================================
     
     # Training progress plot
@@ -568,7 +568,7 @@ def run_experiment_3_enhanced_coverage():
         ax1.plot(callback.timesteps, callback.episode_rewards, 'b-o', linewidth=2, markersize=4)
         ax1.axhline(y=mean_reward, color='green', linestyle='-', linewidth=2, alpha=0.7, 
                    label=f'Mean Reward: {mean_reward:.2f}')
-        ax1.set_title('Experiment 3: Training Progress - Balanced Dense Rewards', fontsize=16)
+        ax1.set_title('Experiment 3 Training Progress - Balanced Dense Rewards', fontsize=16)
         ax1.set_xlabel('Training Steps')
         ax1.set_ylabel('Validation Reward')
         ax1.grid(True, alpha=0.3)
@@ -582,7 +582,7 @@ def run_experiment_3_enhanced_coverage():
         ax2.plot(callback.timesteps, callback.dice_scores, 'r-o', linewidth=2, markersize=4)
         ax2.axhline(y=mean_dice, color='green', linestyle='-', linewidth=2, alpha=0.7, 
                    label=f'Mean Dice: {mean_dice:.3f}')
-        ax2.set_title('Experiment 3: Training Progress - Dice Scores', fontsize=16)
+        ax2.set_title('Experiment 3  Training Progress - Dice Scores', fontsize=16)
         ax2.set_xlabel('Training Steps')
         ax2.set_ylabel('Dice Score')
         ax2.grid(True, alpha=0.3)
@@ -597,23 +597,23 @@ def run_experiment_3_enhanced_coverage():
         ax2.text(0.5, 0.5, 'No training data available', ha='center', va='center', transform=ax2.transAxes)
     
     plt.tight_layout()
-    plt.savefig(os.path.join(results_folder, 'enhanced_training_progress.png'), dpi=150, bbox_inches='tight')
+    training_progress_path = os.path.join(results_folder, 'enhanced_training_progress.png')
+    plt.savefig(training_progress_path, dpi=150, bbox_inches='tight')
     plt.close()
     
     # ============================================================================
     # ENHANCED FINAL EVALUATION WITH COMPREHENSIVE COVERAGE TRACKING
     # ============================================================================
     
-    print("\n" + "="*60)
-    print("Running Eval on test set")
-    print("="*60)
-    
+ 
+    print("RUNNING ENHANCED EVALUATION WITH COMPREHENSIVE COVERAGE TRACKING")
+
     # Option to enable 3D visualization (computationally expensive)
     create_3d_visualizations = True  # Set to True if you want 3D visualizations
     if create_3d_visualizations:
-        print("✓ 3D volume rendering (ENABLED)")
+        print("3D volume rendering (ENABLED)")
     else:
-        print("⚪ 3D volume rendering (DISABLED for speed - set create_3d_visualizations=True to enable)")
+        print("no 3d viz)")
     
     print("="*60)
     
@@ -632,7 +632,7 @@ def run_experiment_3_enhanced_coverage():
     mean_dice = np.mean(final_dice_scores) if final_dice_scores else 0
     std_dice = np.std(final_dice_scores) if final_dice_scores else 0
     
-    # Calculate comprehensive coverage metrics
+    # Extract coverage metrics from comprehensive results
     if comprehensive_results:
         coverage_percentages = [result['results']['lesion_coverage_percentage'] for result in comprehensive_results]
         mean_coverage = np.mean(coverage_percentages)
@@ -640,12 +640,62 @@ def run_experiment_3_enhanced_coverage():
         
         total_spheres_placed = [result['results']['total_spheres'] for result in comprehensive_results]
         mean_spheres = np.mean(total_spheres_placed)
+        
+        # Additional detailed metrics (with error handling)
+        lesion_volumes = []
+        covered_voxels = []
+        
+        # Check what keys are available in the first result
+        if comprehensive_results:
+            print(f"Available result keys: {list(comprehensive_results[0]['results'].keys())}")
+            
+            # Try to extract additional metrics safely
+            for result in comprehensive_results:
+                result_data = result['results']
+                
+                # Try different possible key names for lesion volume
+                lesion_vol = (result_data.get('total_lesion_voxels') or 
+                             result_data.get('lesion_volume') or 
+                             result_data.get('total_lesion_volume') or 0)
+                lesion_volumes.append(lesion_vol)
+                
+                # Try different possible key names for covered voxels
+                covered_vol = (result_data.get('covered_lesion_voxels') or 
+                              result_data.get('covered_voxels') or 
+                              result_data.get('spheres_covering_lesion') or 0)
+                covered_voxels.append(covered_vol)
+        
+        print(f"Evaluation Results:")
+        print(f"  Patients evaluated: {len(test_subset) if 'test_subset' in locals() else len(test_envs)}")
+        print(f"  Mean reward: {mean_reward:.2f} ± {std_reward:.2f}")
+        print(f"  Mean Dice score: {mean_dice:.3f} ± {std_dice:.3f}")
+        print(f"  Mean lesion coverage: {mean_coverage:.1f}% ± {std_coverage:.1f}%")
+        print(f"  Mean spheres per patient: {mean_spheres:.1f}")
+        
+        if lesion_volumes and any(v > 0 for v in lesion_volumes):
+            print(f"  Mean lesion volume: {np.mean(lesion_volumes):.0f} voxels")
+        if covered_voxels and any(v > 0 for v in covered_voxels):
+            print(f"  Mean covered voxels: {np.mean(covered_voxels):.0f}")
+        
+        print(f"\nIndividual Patient Results:")
+        for i, (reward, dice) in enumerate(zip(final_rewards, final_dice_scores)):
+            coverage = coverage_percentages[i]
+            spheres = total_spheres_placed[i]
+            patient_name = f"Patient {i+1}"
+            print(f"  {patient_name}: Reward={reward:.2f}, Dice={dice:.3f}, Coverage={coverage:.1f}%, Spheres={spheres}")
+    
     else:
         coverage_percentages = []
         mean_coverage = std_coverage = mean_spheres = 0
+        lesion_volumes = []
+        covered_voxels = []
+        total_spheres_placed = []
+        print(f"Basic Results:")
+        print(f"  Mean reward: {mean_reward:.2f} ± {std_reward:.2f}")
+        print(f"  Mean Dice score: {mean_dice:.3f} ± {std_dice:.3f}")
     
     print(f"\n" + "="*60)
-    print("EXPERIMENT 3 COMPREHENSIVE RESULTS")
+    print("EXPERIMENT 3 RESULTS")
     print("="*60)
     print(f"Training Configuration:")
     print(f"  Algorithm: Dense Reward RL (PPO)")
@@ -655,18 +705,6 @@ def run_experiment_3_enhanced_coverage():
     print(f"  Total training timesteps: {total_timesteps:,}")
     print(f"  Standardized action space size: {max_action_space}")
     print(f"  Training time: {training_time:.2f} seconds")
-    print(f"\nTest Set Performance:")
-    print(f"  Mean reward: {mean_reward:.2f} ± {std_reward:.2f}")
-    print(f"  Mean Dice score: {mean_dice:.3f} ± {std_dice:.3f}")
-    if coverage_percentages:
-        print(f"  Mean lesion coverage: {mean_coverage:.1f}% ± {std_coverage:.1f}%")
-        print(f"  Mean spheres per patient: {mean_spheres:.1f}")
-    
-    if final_rewards:
-        print(f"\nIndividual Patient Results:")
-        for i, (reward, dice) in enumerate(zip(final_rewards, final_dice_scores)):
-            coverage = coverage_percentages[i] if i < len(coverage_percentages) else 0
-            print(f"  Patient {i+1}: Reward={reward:.2f}, Dice={dice:.3f}, Coverage={coverage:.1f}%")
     
     # ============================================================================
     # ENHANCED SUMMARY VISUALIZATIONS WITH COVERAGE
@@ -686,7 +724,7 @@ def run_experiment_3_enhanced_coverage():
                        color='purple', edgecolor='darkviolet', linewidth=1.5)
         ax1.axhline(y=mean_reward, color='red', linestyle='--', linewidth=2, 
                    label=f'Mean: {mean_reward:.2f}')
-        ax1.set_title('Experiment 3 Enhanced: Dense Reward RL - Final Test Rewards per Patient', fontsize=14)
+        ax1.set_title('Experiment 3  Dense Reward RL - Final Test Rewards per Patient', fontsize=14)
         ax1.set_xlabel('Test Patient', fontsize=12)
         ax1.set_ylabel('Total Reward', fontsize=12)
         ax1.legend()
@@ -695,15 +733,16 @@ def run_experiment_3_enhanced_coverage():
         # Add value labels on bars
         for bar in bars1:
             height = bar.get_height()
-            ax1.text(bar.get_x() + bar.get_width()/2., height + 0.01*max(final_rewards),
-                    f'{height:.1f}', ha='center', va='bottom', fontsize=9)
+            if height != 0:  # Only add label if non-zero
+                ax1.text(bar.get_x() + bar.get_width()/2., height + 0.01*max(final_rewards),
+                        f'{height:.1f}', ha='center', va='bottom', fontsize=9)
         
         # Plot final Dice scores
         bars2 = ax2.bar(range(1, len(final_dice_scores) + 1), final_dice_scores, 
                        color='mediumpurple', edgecolor='darkviolet', linewidth=1.5)
         ax2.axhline(y=mean_dice, color='red', linestyle='--', linewidth=2, 
                    label=f'Mean: {mean_dice:.3f}')
-        ax2.set_title('Experiment 3 Enhanced: Dense Reward RL - Final Test Dice Scores per Patient', fontsize=14)
+        ax2.set_title('Experiment 3  Dense Reward RL - Final Test Dice Scores per Patient', fontsize=14)
         ax2.set_xlabel('Test Patient', fontsize=12)
         ax2.set_ylabel('Dice Score', fontsize=12)
         ax2.legend()
@@ -712,8 +751,9 @@ def run_experiment_3_enhanced_coverage():
         # Add value labels on bars
         for bar in bars2:
             height = bar.get_height()
-            ax2.text(bar.get_x() + bar.get_width()/2., height + 0.01*max(final_dice_scores),
-                    f'{height:.3f}', ha='center', va='bottom', fontsize=9)
+            if height != 0:  # Only add label if non-zero
+                ax2.text(bar.get_x() + bar.get_width()/2., height + 0.01*max(final_dice_scores),
+                        f'{height:.3f}', ha='center', va='bottom', fontsize=9)
         
         # Plot lesion coverage if available
         if coverage_percentages:
@@ -721,7 +761,7 @@ def run_experiment_3_enhanced_coverage():
                            color='plum', edgecolor='darkviolet', linewidth=1.5)
             ax3.axhline(y=mean_coverage, color='red', linestyle='--', linewidth=2, 
                        label=f'Mean: {mean_coverage:.1f}%')
-            ax3.set_title('Experiment 3 Enhanced: Dense Reward RL - Lesion Coverage per Patient', fontsize=14)
+            ax3.set_title('Experiment 3  Dense Reward RL - Lesion Coverage per Patient', fontsize=14)
             ax3.set_xlabel('Test Patient', fontsize=12)
             ax3.set_ylabel('Coverage Percentage (%)', fontsize=12)
             ax3.legend()
@@ -730,12 +770,13 @@ def run_experiment_3_enhanced_coverage():
             # Add value labels on bars
             for bar in bars3:
                 height = bar.get_height()
-                ax3.text(bar.get_x() + bar.get_width()/2., height + 0.01*max(coverage_percentages),
-                        f'{height:.1f}%', ha='center', va='bottom', fontsize=9)
+                if height != 0:  # Only add label if non-zero
+                    ax3.text(bar.get_x() + bar.get_width()/2., height + 0.01*max(coverage_percentages),
+                            f'{height:.1f}%', ha='center', va='bottom', fontsize=9)
         
         plt.tight_layout()
-        plt.savefig(os.path.join(results_folder, 'enhanced_final_results_summary.png'), 
-                   dpi=150, bbox_inches='tight')
+        enhanced_summary_path = os.path.join(results_folder, 'final_results_summary.png')
+        plt.savefig(enhanced_summary_path, dpi=150, bbox_inches='tight')
         plt.close()
     
     # ============================================================================
@@ -744,7 +785,7 @@ def run_experiment_3_enhanced_coverage():
     
     # Save enhanced results data (like Experiment 1 but for Dense Reward RL)
     results_data = {
-        'experiment_name': 'Experiment 3 Enhanced: Dense Reward RL with Comprehensive Coverage Tracking',
+        'experiment_name': 'Experiment 3 dense rl ',
         'method': 'Dense Reward RL Enhanced - Comprehensive Coverage Tracking',
         'algorithm': 'PPO',
         'policy': 'MlpPolicy',
@@ -758,16 +799,16 @@ def run_experiment_3_enhanced_coverage():
         'training_dice_scores': callback.dice_scores if hasattr(callback, 'dice_scores') else [],
         'final_rewards': final_rewards,
         'final_dice_scores': final_dice_scores,
-        'lesion_coverage_percentages': coverage_percentages,  # NEW: Coverage tracking
+        'lesion_coverage_percentages': coverage_percentages,
         'mean_reward': mean_reward,
         'std_reward': std_reward,
         'mean_dice': mean_dice,
         'std_dice': std_dice,
-        'mean_coverage': mean_coverage,  # NEW: Coverage statistics
-        'std_coverage': std_coverage,    # NEW: Coverage statistics
-        'mean_spheres_per_patient': mean_spheres,  # NEW: Sphere count statistics
+        'mean_coverage': mean_coverage,
+        'std_coverage': std_coverage,
+        'mean_spheres_per_patient': mean_spheres,
         'training_time': training_time,
-        'comprehensive_patient_results': [result['results'] for result in comprehensive_results],  # NEW: Detailed results
+        'comprehensive_patient_results': [result['results'] for result in comprehensive_results] if comprehensive_results else [],
         'reward_balance_changes': {
             'base_reward': 1.0,
             'coverage_weight': 10.0,
@@ -788,10 +829,12 @@ def run_experiment_3_enhanced_coverage():
         }
     }
     
-    np.savez(os.path.join(results_folder, 'experiment_3_enhanced_coverage_results.npz'), **results_data)
+    results_file = os.path.join(results_folder, 'experiment_evaluation_results.npz')
+    np.savez(results_file, **results_data)
     
     # Save comprehensive summary report
-    with open(os.path.join(results_folder, 'experiment_3_enhanced_coverage_summary.txt'), 'w') as f:
+    summary_file = os.path.join(results_folder, 'experiment_evaluation_summary.txt')
+    with open(summary_file, 'w') as f:
         f.write("EXPERIMENT 3 ENHANCED: DENSE REWARD RL WITH COMPREHENSIVE COVERAGE TRACKING\n")
         f.write("=" * 80 + "\n\n")
         f.write(f"Experiment completed: {current_time}\n")
@@ -805,47 +848,25 @@ def run_experiment_3_enhanced_coverage():
         f.write(f"Max action space size: {max_action_space}\n")
         f.write(f"Evaluation frequency: {eval_freq:,} steps\n\n")
         
-        f.write(f"Dense Reward Features:\n")
-        f.write(f"✓ Dense reward at each step based on coverage improvement\n")
-        f.write(f"✓ Balanced reward system (not overly punitive)\n")
-        f.write(f"✓ Base positive reward for all valid placements\n")
-        f.write(f"✓ Progressive bonuses for increasing coverage\n")
-        f.write(f"✓ Overlap prevention without harsh penalties\n")
-        f.write(f"✓ Enhanced spacing and center proximity rewards\n\n")
-        
-        f.write(f"Coverage Tracking Features (like Experiment 1):\n")
-        f.write(f"✓ Enhanced 2D visualization (original style)\n")
-        f.write(f"✓ Multi-view medical imaging (sagittal, coronal, axial)\n")
-        f.write(f"✓ Detailed quantitative analysis plots\n")
-        f.write(f"✓ Sphere placement progression summaries\n")
-        f.write(f"✓ COMPREHENSIVE coverage percentage tracking\n")
-        f.write(f"✓ Coverage statistics calculation and reporting\n")
-        f.write(f"✓ Comprehensive JSON results for each patient\n")
+
         if create_3d_visualizations:
             f.write(f"✓ 3D volume rendering\n")
         else:
             f.write(f"⚪ 3D volume rendering (disabled for speed)\n")
         f.write("\n")
         
-        f.write(f"Reward Components (BALANCED FOR POSITIVE OUTCOMES):\n")
-        f.write(f"- Base reward: +1.0 (always positive starting point)\n")
-        f.write(f"- Coverage improvement (weight: 10.0) + bonuses\n")
-        f.write(f"- Spacing reward/penalty (weight: 2.0) - REDUCED for balance\n")
-        f.write(f"- Center proximity reward (weight: 3.0) - INCREASED\n") 
-        f.write(f"- Boundary penalty (weight: 2.0) - REDUCED for balance\n")
-        f.write(f"- Overlap penalty (weight: 3.0) - NEW, moderate\n")
-        f.write(f"- Safety net: minimum reward capped at -2.0\n\n")
         
         f.write(f"Training Patients:\n")
         for i, patient_dir in enumerate(train_patients):
             patient_name = os.path.basename(patient_dir)
             f.write(f"  {i+1}. {patient_name}\n")
+        f.write("\n")
         
-        f.write(f"\nDataset Split:\n")
+        f.write(f"Dataset Split:\n")
+        f.write(f"  Total patients available: {len(patient_folders)}\n")
         f.write(f"  Training patients: {len(train_patients)}\n")
         f.write(f"  Validation patients: {len(val_patients)}\n")
-        f.write(f"  Testing patients: {len(test_patients)}\n")
-        f.write(f"  Total available patients: {len(patient_folders)}\n\n")
+        f.write(f"  Testing patients: {len(test_patients)}\n\n")
         
         f.write(f"Test Set Results:\n")
         f.write(f"  Mean reward: {mean_reward:.2f} ± {std_reward:.2f}\n")
@@ -859,31 +880,35 @@ def run_experiment_3_enhanced_coverage():
             f.write(f"Individual Test Results:\n")
             for i, (reward, dice) in enumerate(zip(final_rewards, final_dice_scores)):
                 coverage = coverage_percentages[i] if i < len(coverage_percentages) else 0
-                f.write(f"  Patient {i+1}: Reward={reward:.2f}, Dice={dice:.3f}, Coverage={coverage:.1f}%\n")
+                spheres = total_spheres_placed[i] if i < len(total_spheres_placed) else 0
+                f.write(f"  Patient {i+1}: Reward={reward:.2f}, Dice={dice:.3f}, Coverage={coverage:.1f}%, Spheres={spheres}\n")
         
-        f.write(f"\nVisualization Output Structure:\n")
-        f.write(f"  Each patient folder contains:\n")
-        f.write(f"  - Enhanced 2D visualizations (step-by-step + final)\n")
-        f.write(f"  - Multi-view medical imaging (step-by-step + final)\n")
-        f.write(f"  - Detailed quantitative analysis plot\n")
-        f.write(f"  - Sphere placement progression summary\n")
-        f.write(f"  - Comprehensive JSON results with coverage data\n")
-        f.write(f"  - Step-by-step progress plots\n")
+
         if create_3d_visualizations:
             f.write(f"  - 3D volume renderings (step-by-step + final)\n")
     
-    print(f"\n" + "="*60)
-    print("EXPERIMENT 3 ENHANCED WITH COMPREHENSIVE COVERAGE TRACKING COMPLETED!")
-    print("="*60)
+    print(f"\n" + "="*80)
+    print("EXPERIMENT 3 E")
+    print("="*80)
     print(f"Results saved in: {results_folder}")
-    print(f"Summary report: {os.path.join(results_folder, 'experiment_3_enhanced_coverage_summary.txt')}")
-
-    if create_3d_visualizations:
-        print(f"✓ 3D volume renderings")
-    else:
-        print(f"⚪ 3D volume renderings (disabled for speed)")
+    print(f"Summary report: {summary_file}")
+    print(f"\nKey files created:")
+    print(f"✓ {enhanced_summary_path} - Comprehensive 3-panel summary")
+    print(f"✓ {training_progress_path} - Training overview")
+    print(f"✓ {results_file} - Complete data")
+    print(f"✓ {summary_file} - Detailed report")
     
-    print("="*60)
+    if create_3d_visualizations:
+        print(f"")
+    else:
+        print(f"3D volume renderings (disabled for speed)")
+    print(f"\nEvaluation Summary:")
+    print(f"  Patients evaluated: {len(test_subset) if 'test_subset' in locals() else len(test_envs)}")
+    if coverage_percentages:
+        print(f"  Mean coverage: {mean_coverage:.1f}% ± {std_coverage:.1f}%")
+    print(f"  Mean Dice: {mean_dice:.3f} ± {std_dice:.3f}")
+    print(f"  Mean reward: {mean_reward:.2f} ± {std_reward:.2f}")
+    print("="*80)
 
 
 if __name__ == "__main__":

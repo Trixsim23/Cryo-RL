@@ -89,12 +89,12 @@ def get_filtered_dataset(filtered_dir="./filtered_dataset"):
 
 
 # ============================================================================
-# DENSE REWARD ENVIRONMENT - FULLY FIXED
+# DENSE REWARD ENVIRONMENT
 # ============================================================================
 
 class DenseRewardSpherePlacementEnv(SpherePlacementEnv):
     """
-    FULLY FIXED: Modified SpherePlacementEnv with balanced dense reward function.
+    Modified SpherePlacementEnv with balanced dense reward function.
     Provides immediate positive feedback at each step based on coverage improvement.
     """
     
@@ -402,11 +402,10 @@ class TrainingCallback(BaseCallback):
 # ============================================================================
 # EXPERIMENT 3: DENSE REWARD RL - FULLY FIXED
 # ============================================================================
-def run_experiment_3_fixed():
-    """Run Experiment 3: Dense Reward RL - FULLY FIXED with balanced positive rewards"""
+def run_experiment_3():
     
     print("=" * 60)
-    print("EXPERIMENT 3: DENSE REWARD RL - ENHANCED WITH COMPREHENSIVE COVERAGE TRACKING")
+    print("EXPERIMENT 3: DENSE REWARD RL ")
 
     
     # Setup results folder
@@ -472,7 +471,7 @@ def run_experiment_3_fixed():
         return
     
     # ============================================================================
-    # STANDARDIZED ENVIRONMENT CREATION - KEY FIX
+    # STANDARDIZED ENVIRONMENT CREATION 
     # ============================================================================
     
     print("\n" + "="*50)
@@ -524,7 +523,7 @@ def run_experiment_3_fixed():
     # TRAINING PARAMETERS
     # ============================================================================
     
-    timesteps_per_patient = 500000  # Increased for better training
+    timesteps_per_patient = 50000000  # Increased for better training
     total_timesteps = len(train_envs) * timesteps_per_patient
     eval_freq = 2000
     
@@ -630,7 +629,7 @@ def run_experiment_3_fixed():
     plt.close()
     
     # ============================================================================
-    # ENHANCED FINAL EVALUATION WITH COMPREHENSIVE COVERAGE TRACKING
+    #FINAL EVALUATION
     # ============================================================================
     
     print("\n" + "="*60)
@@ -640,9 +639,9 @@ def run_experiment_3_fixed():
     # Option to enable 3D visualization (computationally expensive)
     create_3d_visualizations = True  # Set to True if you want 3D visualizations
     if create_3d_visualizations:
-        print("✓ 3D volume rendering (ENABLED)")
+        print("3d vol tracking")
     else:
-        print("⚪ 3D volume rendering (DISABLED for speed - set create_3d_visualizations=True to enable)")
+        print("no 3D volume rendering ")
     
     print("="*60)
     
@@ -652,7 +651,7 @@ def run_experiment_3_fixed():
     )
     
     # ============================================================================
-    # ENHANCED RESULTS SUMMARY WITH COMPREHENSIVE COVERAGE TRACKING
+    # results summary
     # ============================================================================
     
     # Summary statistics
@@ -674,7 +673,7 @@ def run_experiment_3_fixed():
         mean_coverage = std_coverage = mean_spheres = 0
     
     print(f"\n" + "="*60)
-    print("EXPERIMENT 3 COMPREHENSIVE RESULTS")
+    print("EXPERIMENT 3 RESULTS")
     print("="*60)
     print(f"Training Configuration:")
     print(f"  Algorithm: Dense Reward RL (PPO)")
@@ -715,7 +714,7 @@ def run_experiment_3_fixed():
                        color='purple', edgecolor='darkviolet', linewidth=1.5)
         ax1.axhline(y=mean_reward, color='red', linestyle='--', linewidth=2, 
                    label=f'Mean: {mean_reward:.2f}')
-        ax1.set_title('Experiment 3 Enhanced: Dense Reward RL - Final Test Rewards per Patient', fontsize=14)
+        ax1.set_title('Experiment 3 Dense Reward RL - Final Test Rewards per Patient', fontsize=14)
         ax1.set_xlabel('Test Patient', fontsize=12)
         ax1.set_ylabel('Total Reward', fontsize=12)
         ax1.legend()
@@ -732,7 +731,7 @@ def run_experiment_3_fixed():
                        color='mediumpurple', edgecolor='darkviolet', linewidth=1.5)
         ax2.axhline(y=mean_dice, color='red', linestyle='--', linewidth=2, 
                    label=f'Mean: {mean_dice:.3f}')
-        ax2.set_title('Experiment 3 Enhanced: Dense Reward RL - Final Test Dice Scores per Patient', fontsize=14)
+        ax2.set_title('Experiment 3  Dense Reward RL - Final Test Dice Scores per Patient', fontsize=14)
         ax2.set_xlabel('Test Patient', fontsize=12)
         ax2.set_ylabel('Dice Score', fontsize=12)
         ax2.legend()
@@ -750,7 +749,7 @@ def run_experiment_3_fixed():
                            color='plum', edgecolor='darkviolet', linewidth=1.5)
             ax3.axhline(y=mean_coverage, color='red', linestyle='--', linewidth=2, 
                        label=f'Mean: {mean_coverage:.1f}%')
-            ax3.set_title('Experiment 3 Enhanced: Dense Reward RL - Lesion Coverage per Patient', fontsize=14)
+            ax3.set_title('Experiment 3 Dense Reward RL - Lesion Coverage per Patient', fontsize=14)
             ax3.set_xlabel('Test Patient', fontsize=12)
             ax3.set_ylabel('Coverage Percentage (%)', fontsize=12)
             ax3.legend()
@@ -763,7 +762,7 @@ def run_experiment_3_fixed():
                         f'{height:.1f}%', ha='center', va='bottom', fontsize=9)
         
         plt.tight_layout()
-        plt.savefig(os.path.join(results_folder, 'enhanced_final_results_summary.png'), 
+        plt.savefig(os.path.join(results_folder, 'final_results_summary.png'), 
                    dpi=150, bbox_inches='tight')
         plt.close()
     
@@ -773,8 +772,8 @@ def run_experiment_3_fixed():
     
     # Save enhanced results data (like Experiment 1 but for Dense Reward RL)
     results_data = {
-        'experiment_name': 'Experiment 3 Enhanced: Dense Reward RL with Comprehensive Coverage Tracking',
-        'method': 'Dense Reward RL Enhanced - Comprehensive Coverage Tracking',
+        'experiment_name': 'Experiment 3 : Dense Reward RL ',
+        'method': 'Dense Reward RL ',
         'algorithm': 'PPO',
         'policy': 'MlpPolicy',
         'environment': 'DenseRewardSpherePlacementEnv (BALANCED)',
@@ -817,14 +816,14 @@ def run_experiment_3_fixed():
         }
     }
     
-    np.savez(os.path.join(results_folder, 'experiment_3_enhanced_coverage_results.npz'), **results_data)
+    np.savez(os.path.join(results_folder, 'experiment_results.npz'), **results_data)
     
     # Save comprehensive summary report
-    with open(os.path.join(results_folder, 'experiment_3_enhanced_coverage_summary.txt'), 'w') as f:
-        f.write("EXPERIMENT 3 ENHANCED: DENSE REWARD RL WITH COMPREHENSIVE COVERAGE TRACKING\n")
+    with open(os.path.join(results_folder, 'experiment_3_summary.txt'), 'w') as f:
+        f.write("EXPERIMENT 3: DENSE REWARD RL \n")
         f.write("=" * 80 + "\n\n")
         f.write(f"Experiment completed: {current_time}\n")
-        f.write(f"Method: Dense Reward RL Enhanced with Comprehensive Coverage Tracking\n")
+        f.write(f"Method: Dense Reward RL \n")
         f.write(f"Algorithm: PPO\n")
         f.write(f"Policy: MlpPolicy\n")
         f.write(f"Environment: DenseRewardSpherePlacementEnv (BALANCED)\n")
@@ -834,36 +833,13 @@ def run_experiment_3_fixed():
         f.write(f"Max action space size: {max_action_space}\n")
         f.write(f"Evaluation frequency: {eval_freq:,} steps\n\n")
         
-        f.write(f"Dense Reward Features:\n")
-        f.write(f"✓ Dense reward at each step based on coverage improvement\n")
-        f.write(f"✓ Balanced reward system (not overly punitive)\n")
-        f.write(f"✓ Base positive reward for all valid placements\n")
-        f.write(f"✓ Progressive bonuses for increasing coverage\n")
-        f.write(f"✓ Overlap prevention without harsh penalties\n")
-        f.write(f"✓ Enhanced spacing and center proximity rewards\n\n")
-        
-        f.write(f"Coverage Tracking Features (like Experiment 1):\n")
-        f.write(f"✓ Enhanced 2D visualization (original style)\n")
-        f.write(f"✓ Multi-view medical imaging (sagittal, coronal, axial)\n")
-        f.write(f"✓ Detailed quantitative analysis plots\n")
-        f.write(f"✓ Sphere placement progression summaries\n")
-        f.write(f"✓ COMPREHENSIVE coverage percentage tracking\n")
-        f.write(f"✓ Coverage statistics calculation and reporting\n")
-        f.write(f"✓ Comprehensive JSON results for each patient\n")
+  
         if create_3d_visualizations:
-            f.write(f"✓ 3D volume rendering\n")
+            f.write(f"3D volume rendering\n")
         else:
-            f.write(f"⚪ 3D volume rendering (disabled for speed)\n")
+            f.write(f"3D volume rendering (disabled for speed)\n")
         f.write("\n")
         
-        f.write(f"Reward Components (BALANCED FOR POSITIVE OUTCOMES):\n")
-        f.write(f"- Base reward: +1.0 (always positive starting point)\n")
-        f.write(f"- Coverage improvement (weight: 10.0) + bonuses\n")
-        f.write(f"- Spacing reward/penalty (weight: 2.0) - REDUCED for balance\n")
-        f.write(f"- Center proximity reward (weight: 3.0) - INCREASED\n") 
-        f.write(f"- Boundary penalty (weight: 2.0) - REDUCED for balance\n")
-        f.write(f"- Overlap penalty (weight: 3.0) - NEW, moderate\n")
-        f.write(f"- Safety net: minimum reward capped at -2.0\n\n")
         
         f.write(f"Training Patients:\n")
         for i, patient_dir in enumerate(train_patients):
@@ -890,27 +866,17 @@ def run_experiment_3_fixed():
                 coverage = coverage_percentages[i] if i < len(coverage_percentages) else 0
                 f.write(f"  Patient {i+1}: Reward={reward:.2f}, Dice={dice:.3f}, Coverage={coverage:.1f}%\n")
         
-        f.write(f"\nVisualization Output Structure:\n")
-        f.write(f"  Each patient folder contains:\n")
-        f.write(f"  - Enhanced 2D visualizations (step-by-step + final)\n")
-        f.write(f"  - Multi-view medical imaging (step-by-step + final)\n")
-        f.write(f"  - Detailed quantitative analysis plot\n")
-        f.write(f"  - Sphere placement progression summary\n")
-        f.write(f"  - Comprehensive JSON results with coverage data\n")
-        f.write(f"  - Step-by-step progress plots\n")
         if create_3d_visualizations:
             f.write(f"  - 3D volume renderings (step-by-step + final)\n")
     
-    print(f"\n" + "="*60)
-    print("EXPERIMENT 3 ENHANCED WITH COMPREHENSIVE COVERAGE TRACKING COMPLETED!")
     print("="*60)
     print(f"Results saved in: {results_folder}")
     print(f"Summary report: {os.path.join(results_folder, 'experiment_3_enhanced_coverage_summary.txt')}")
 
     if create_3d_visualizations:
-        print(f"✓ 3D volume renderings")
+        print(f" 3D volume renderings")
     else:
-        print(f"⚪ 3D volume renderings (disabled for speed)")
+        print(f"3D volume renderings (disabled for speed)")
     
     print("="*60)
 
@@ -918,4 +884,4 @@ def run_experiment_3_fixed():
 
 
 if __name__ == "__main__":
-    run_experiment_3_fixed()
+    run_experiment_3()

@@ -1,4 +1,4 @@
-#this file is the one with out the downsampling 
+# main_env_fixed.py - Fixed version of SpherePlacementEnv
 
 import gymnasium as gym
 from gym import spaces
@@ -11,7 +11,7 @@ from matplotlib.colors import Normalize
 import matplotlib.pyplot as plt
 
 class SpherePlacementEnv(gym.Env):
-    def __init__(self, mri_data, mask_data, lesion_data, sphere_radius=7):
+    def __init__(self, mri_data, mask_data, lesion_data, sphere_radius=7, max_action_space=None):
         super(SpherePlacementEnv, self).__init__()
 
         self.mri_data = mri_data
@@ -26,12 +26,20 @@ class SpherePlacementEnv(gym.Env):
         if len(self.lesion_coords) == 0:
             raise ValueError("No valid lesion coordinates found within the prostate mask.")
         
-        # Define action space: single action to place a sphere
-        self.action_space = spaces.Discrete(self.lesion_coords.shape[0])
+        # FIXED: Use standardized action space
+        if max_action_space is None:
+            # If no max specified, use the current environment's size (for single environment training)
+            self.max_action_space = self.lesion_coords.shape[0]
+        else:
+            # Use the provided max action space size (for multi-environment training)
+            self.max_action_space = max_action_space
+        
+        # Define action space: standardized size across all environments
+        self.action_space = spaces.Discrete(self.max_action_space)
         self.observation_space = spaces.Box(
             low=0, high= 1, shape=(mri_data.shape[0],mri_data.shape[1],mri_data.shape[2],3), dtype=np.int32
         )
-        print(f"Environment initialized with {self.lesion_coords.shape[0]} valid lesion coordinates")
+        print(f"Environment initialized with {self.lesion_coords.shape[0]} valid lesion coordinates, action space size: {self.max_action_space}")
         
         self.max_spheres = 3  # Max spheres per episode
         self.sphere_count = 0
@@ -78,11 +86,12 @@ class SpherePlacementEnv(gym.Env):
         return score
 
     def step(self, action):
-        # Ensure action is within valid range
-        action = int(action) % self.lesion_coords.shape[0]  # Use modulo to handle out-of-range actions
+        # FIXED: Map action to valid coordinate index using modulo
+        if self.lesion_coords.shape[0] == 0:
+            raise ValueError("No valid lesion coordinates available")
         
-        # Evaluate all possible locations and select the best one
-        coord = self.lesion_coords[action]
+        coord_index = int(action) % self.lesion_coords.shape[0]
+        coord = self.lesion_coords[coord_index]
 
         # Add random noise to the placement (limited to around 5 voxels in x, y, z)
         noise = np.random.randint(-5, 5, size=3)
@@ -139,207 +148,78 @@ class SpherePlacementEnv(gym.Env):
         print(f"Sphere positions: {self.sphere_positions}")
 
 
-#used for testing the environment itself 
-
-
-# # Add this updated method to your SpherePlacementEnv class in main_env.py
-
-#     def visualize_spheres(self, slice_idx, show=True, save_path=None):
-#         """
-#         Enhanced visualization showing individual sphere placements with numbers and colors
-#         """
-#         from main_agent import enhanced_visualize_spheres_with_numbers
-        
-#         fig = enhanced_visualize_spheres_with_numbers(
-#             env=self,
-#             slice_idx=slice_idx,
-#             save_path=save_path,
-#             show=show,
-#             step_info=""
-#         )
-#         return fig
-
-# # Alternative: Update the existing visualize_removal_with_overlay function in main_env.py
-
-def visualize_removal_with_overlay(original_mri, modified_mri, original_mask, modified_mask, 
-                                          original_lesion, modified_lesion, slice_idx, sphere_positions=None, 
-                                          sphere_radius=7, show=True, save_path=None, step_info=""):
+def get_max_action_space_size(patient_dirs, target_shape=(128, 128, 20)):
     """
-    Enhanced visualization with individual sphere markers
+    Determine the maximum action space size across all patients
     """
-    import matplotlib.patches as patches
+    from main_agent import load_and_preprocess_patient_data
     
-    fig, axes = plt.subplots(2, 2, figsize=(12, 10))
-
-    # Normalize MRI volumes to [0, 1]
-    original_mri_norm = (original_mri - np.min(original_mri)) / (np.max(original_mri) - np.min(original_mri) + 1e-10)
-    modified_mri_norm = (modified_mri - np.min(modified_mri)) / (np.max(modified_mri) - np.min(modified_mri) + 1e-10)
-
-    # Normalize masks to [0, 1]
-    original_mask_norm = original_mask.astype(float)
-    if np.max(original_mask) > 0:
-        original_mask_norm = original_mask_norm / np.max(original_mask)
-        
-    modified_mask_norm = modified_mask.astype(float)
-    if np.max(modified_mask) > 0:
-        modified_mask_norm = modified_mask_norm / np.max(modified_mask)
-        
-    original_lesion_norm = original_lesion.astype(float)
-    if np.max(original_lesion) > 0:
-        original_lesion_norm = original_lesion_norm / np.max(original_lesion)
-        
-    modified_lesion_norm = modified_lesion.astype(float)
-    if np.max(modified_lesion) > 0:
-        modified_lesion_norm = modified_lesion_norm / np.max(modified_lesion)
-
-    # Mask out values in the prostate mask that are 0
-    original_mask_masked = np.ma.masked_where(original_mask_norm == 0, original_mask_norm)
-    modified_mask_masked = np.ma.masked_where(modified_mask_norm == 0, modified_mask_norm)
-
-    # Mask out values in the lesion mask that are 0
-    original_lesion_masked = np.ma.masked_where(original_lesion_norm == 0, original_lesion_norm)
-    modified_lesion_masked = np.ma.masked_where(modified_lesion_norm == 0, modified_lesion_norm)
-
-    # Define normalization for overlay consistency
-    norm = Normalize(vmin=0, vmax=1)
-
-    # Define colors and markers for each sphere
-    sphere_colors = ['red', 'blue', 'green']
-    sphere_markers = ['o', 's', '^']  # circle, square, triangle
-
-    # Original MRI with mask overlay
-    axes[0, 0].imshow(original_mri_norm[:, :, slice_idx], cmap='gray', norm=norm)
-    axes[0, 0].imshow(np.max(original_mask_masked[:, :, :], axis=2), cmap='summer', alpha=0.5)
-    axes[0, 0].imshow(np.max(original_lesion_masked[:, :, :], axis=2), cmap='jet', alpha=0.4)
-    axes[0, 0].set_title("Original MRI with Masks")
-    axes[0, 0].axis("off")
-
-    # Modified MRI with mask overlay + Individual Sphere Markers
-    axes[0, 1].imshow(modified_mri_norm[:, :, slice_idx], cmap='gray', norm=norm)
-    axes[0, 1].imshow(modified_mask_masked[:, :, slice_idx], cmap='Reds', alpha=0.5)
-    axes[0, 1].imshow(modified_lesion_masked[:, :, slice_idx], cmap='Reds', alpha=0.4)
+    max_lesion_coords = 0
+    lesion_coord_counts = []
     
-    # Add individual sphere markers
-    if sphere_positions:
-        for i, sphere_pos in enumerate(sphere_positions):
-            x, y, z = sphere_pos
-            if abs(z - slice_idx) <= 2:  # Show spheres close to current slice
-                color = sphere_colors[i % len(sphere_colors)]
-                marker = sphere_markers[i % len(sphere_markers)]
+    print("Determining maximum action space size across all patients...")
+    
+    for i, patient_dir in enumerate(patient_dirs):
+        try:
+            patient_name = os.path.basename(patient_dir)
+            print(f"Checking patient {i+1}/{len(patient_dirs)}: {patient_name}")
+            
+            mri_data, mask_data, lesion_data = load_and_preprocess_patient_data(patient_dir, target_shape)
+            
+            # Count lesion coordinates
+            lesion_coords = np.argwhere((lesion_data > 0) & (mask_data > 0))
+            num_coords = lesion_coords.shape[0]
+            lesion_coord_counts.append(num_coords)
+            
+            if num_coords > max_lesion_coords:
+                max_lesion_coords = num_coords
                 
-                # Add numbered marker
-                axes[0, 1].scatter(y, x, s=200, c=color, marker=marker, 
-                                 edgecolors='white', linewidth=2, alpha=0.9, zorder=10)
-                axes[0, 1].text(y, x, str(i+1), ha='center', va='center', 
-                               fontsize=12, fontweight='bold', color='white', zorder=11)
+            print(f"  {patient_name}: {num_coords} lesion coordinates")
+            
+        except Exception as e:
+            print(f"  Error processing {patient_name}: {e}")
+            continue
     
-    axes[0, 1].set_title(f"Modified MRI with Numbered Spheres {step_info}")
-    axes[0, 1].axis("off")
-
-    # Original mask with lesion overlay 
-    axes[1, 0].imshow(original_mask_masked[:, :, slice_idx], cmap='Reds', norm=norm)
-    axes[1, 0].imshow(original_lesion_masked[:, :, slice_idx], cmap='Reds', alpha=0.4)
-    axes[1, 0].set_title("Original Masks")
-    axes[1, 0].axis("off")
-
-    # Modified mask with lesion overlay + Individual Sphere Markers
-    axes[1, 1].imshow(modified_mask_masked[:, :, slice_idx], cmap='Reds', norm=norm)
-    axes[1, 1].imshow(modified_lesion_masked[:, :, slice_idx], cmap='Reds', alpha=0.4)
+    print(f"\nAction space analysis:")
+    print(f"  Minimum lesion coordinates: {min(lesion_coord_counts)}")
+    print(f"  Maximum lesion coordinates: {max_lesion_coords}")
+    print(f"  Mean lesion coordinates: {np.mean(lesion_coord_counts):.1f}")
+    print(f"  Standard deviation: {np.std(lesion_coord_counts):.1f}")
+    print(f"  Using maximum size: {max_lesion_coords}")
     
-    # Add individual sphere markers to mask view
-    if sphere_positions:
-        for i, sphere_pos in enumerate(sphere_positions):
-            x, y, z = sphere_pos
-            if abs(z - slice_idx) <= 2:  # Show spheres close to current slice
-                color = sphere_colors[i % len(sphere_colors)]
-                marker = sphere_markers[i % len(sphere_markers)]
-                
-                # Add numbered marker
-                axes[1, 1].scatter(y, x, s=200, c=color, marker=marker, 
-                                 edgecolors='white', linewidth=2, alpha=0.9, zorder=10)
-                axes[1, 1].text(y, x, str(i+1), ha='center', va='center', 
-                               fontsize=12, fontweight='bold', color='white', zorder=11)
+    return max_lesion_coords
+
+
+def create_standardized_environments(patient_dirs, max_action_space=None, target_shape=(128, 128, 20)):
+    """
+    Create environments with standardized action spaces
+    """
+    from main_agent import load_and_preprocess_patient_data
     
-    axes[1, 1].set_title(f"Modified Masks with Numbered Spheres {step_info}")
-    axes[1, 1].axis("off")
-
-    # Add legend for sphere markers
-    if sphere_positions:
-        legend_elements = []
-        for i in range(len(sphere_positions)):
-            color = sphere_colors[i % len(sphere_colors)]
-            marker = sphere_markers[i % len(sphere_markers)]
-            legend_elements.append(plt.Line2D([0], [0], marker=marker, color='w', 
-                                            markerfacecolor=color, markersize=10, 
-                                            markeredgecolor='white', markeredgewidth=2,
-                                            label=f'Sphere {i+1}'))
-        
-        axes[0, 1].legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(0, 1))
-
-    plt.tight_layout()
+    # If max_action_space not provided, calculate it
+    if max_action_space is None:
+        max_action_space = get_max_action_space_size(patient_dirs, target_shape)
     
-    # Save the figure if save_path is provided
-    if save_path:
-        plt.savefig(save_path, dpi=150, bbox_inches='tight')
-    else:
-        # Use default save path if none provided
-        current_time = time.strftime("%Y%m%d-%H%M%S")
-        folder = os.path.join(".", "results")
-        if not os.path.exists(folder):
-            os.makedirs(folder)
-        plt.savefig(os.path.join('results', f'enhanced_visualize_{step_info}_{current_time}.png'))
+    environments = []
     
-    if show:
-        plt.show()
-    else:
-        plt.close()
+    print(f"\nCreating standardized environments with action space size: {max_action_space}")
     
-    return fig
-
-# Example usage
-if __name__ == "__main__":
-    mri_file = os.path.join(".", "image_with_masks", "P-10104751", "t2.nii.gz")
-    mask_file = os.path.join(".", "image_with_masks", "P-10104751", "gland.nii.gz")
-    lesion_mask = os.path.join(".", "image_with_masks", "P-10104751", "l_a1.nii.gz")
-
-    mri_img = nib.load(mri_file)
-    mask_img = nib.load(mask_file)
-    lesion_img = nib.load(lesion_mask)
+    for i, patient_dir in enumerate(patient_dirs):
+        try:
+            patient_name = os.path.basename(patient_dir)
+            print(f"Loading patient {i+1}/{len(patient_dirs)}: {patient_name}")
+            
+            mri_data, mask_data, lesion_data = load_and_preprocess_patient_data(patient_dir, target_shape)
+            
+            # Create environment with standardized action space
+            env = SpherePlacementEnv(mri_data, mask_data, lesion_data, 
+                                   sphere_radius=7, max_action_space=max_action_space)
+            environments.append(env)
+            
+            print(f"  Successfully created environment for {patient_name}")
+            
+        except Exception as e:
+            print(f"  Error creating environment for {patient_name}: {e}")
+            continue
     
-
-    mri_data = mri_img.get_fdata()
-    mask_data = mask_img.get_fdata()
-    lesion_data = lesion_img.get_fdata()
-
-    # Rotate the volume 90 degrees anti-clockwise
-    mri_data = np.rot90(mri_data, 1)
-    mask_data = np.rot90(mask_data, 1)
-    lesion_data = np.rot90(lesion_data, 1)
-
-    env = SpherePlacementEnv(mri_data, mask_data, lesion_data)
-    # print(env.mri_data.shape)
-    obs = env.reset()
-    done = False
-    rewards = []
-    #change the range here 
-    for i in range(20):
-        if done:
-            obs = env.reset()
-        action = env.action_space.sample()
-        obs, reward, done, info = env.step(action)
-        rewards.append(reward) 
-        # env.render()
-    # print (rewards)
-    #PRINT AN AVERAGE REWARD 
-    print (np.mean(rewards))
-    plt.figure()
-    plt.plot(range(1, len(rewards) + 1), rewards, marker='o', linestyle='-', color='b')
-    plt.title('Rewards Over Epochs', fontsize=16)
-    plt.xlabel('Epoch', fontsize=14)
-    plt.ylabel('Total Reward', fontsize=14)
-    plt.grid(True)
-    plt.show()
-
-    # Visualize the effect of the spheres
-    slice_idx = mri_data.shape[2] // 2
-    env.visualize_spheres(slice_idx)
+    return environments, max_action_space

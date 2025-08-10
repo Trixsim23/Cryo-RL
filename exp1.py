@@ -95,7 +95,7 @@ def run_experiment_1_enhanced():
     
     # Setup results folder with enhanced naming
     current_time = time.strftime("%Y%m%d-%H%M%S")
-    results_folder = f"./experiment_1_1patient{current_time}"
+    results_folder = f"./experiment_1_alt{current_time}"
     os.makedirs(results_folder, exist_ok=True)
     
     # Load dataset
@@ -204,7 +204,7 @@ def run_experiment_1_enhanced():
     # TRAINING PARAMETERS
     # ============================================================================
     
-    timesteps_per_patient = 1000000  # Adjust as needed for your computational budget
+    timesteps_per_patient = 500000000  # Adjust as needed for your computational budget
     total_timesteps = len(train_envs) * timesteps_per_patient
     eval_freq = 5000
     
