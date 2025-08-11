@@ -22,7 +22,7 @@ To run the dense reward experiment use the following script:
 ```
 python Dense_exp_P1.py
 ```
-#Evaluation 
+# Evaluation 
 
 To create the grid visualisatio for any experiment, run the following code 
 
