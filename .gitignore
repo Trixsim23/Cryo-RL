@@ -19,4 +19,14 @@ results/visualize.png
 Visualisation_test.py
 Sphere.py
 output.txt
+compare.py
+collection_tool
 .gitignore
+clinical_placements.csv
+enhanced_clinical_placement_analysis.png
+experiment_4.py
+experiment_5.py
+collection_tool/__pycache__/agent_vis_2.cpython-39.pyc
+collection_tool/__pycache__/main_agent.cpython-39.pyc
+collection_tool/__pycache__/main_env.cpython-39.pyc
+collection_tool/__pycache__/random.cpython-39.pyc

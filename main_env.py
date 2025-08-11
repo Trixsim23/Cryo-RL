@@ -152,7 +152,7 @@ def get_max_action_space_size(patient_dirs, target_shape=(128, 128, 20)):
     """
     Determine the maximum action space size across all patients
     """
-    from main_agent import load_and_preprocess_patient_data
+    from main_agent_2 import load_and_preprocess_patient_data
     
     max_lesion_coords = 0
     lesion_coord_counts = []
@@ -194,7 +194,7 @@ def create_standardized_environments(patient_dirs, max_action_space=None, target
     """
     Create environments with standardized action spaces
     """
-    from main_agent import load_and_preprocess_patient_data
+    from main_agent_2 import load_and_preprocess_patient_data
     
     # If max_action_space not provided, calculate it
     if max_action_space is None:
