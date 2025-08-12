@@ -117,7 +117,7 @@ def visualize_placement_projection_dots(env, save_path=None, show=True, step_inf
     from mpl_toolkits.mplot3d import Axes3D
     from skimage import measure
     
-    fig = plt.figure(figsize=(10, 8))
+    fig = plt.figure(figsize=(10, 8), facecolor='white')
     ax = fig.add_subplot(111, projection='3d')
     
     prostate_mask = env.mask_data > 0
@@ -163,14 +163,13 @@ def visualize_placement_projection_dots(env, save_path=None, show=True, step_inf
     
     for i, sphere_pos in enumerate(env.sphere_positions):
         x, y, z = sphere_pos
-        # Use same coordinate system as the ablation zones - don't swap x and y
-        top_z = max_z + 2  # Place dots above everything else
-        ax.scatter(x, y, top_z, c='black', s=150, marker='o', edgecolors='white', 
-                linewidth=3, zorder=200, alpha=1.0)
-        ax.text(x, y, top_z+2, str(i+1), fontsize=14, fontweight='bold', 
-            color='black', zorder=201)
-        # Optional: add a thin line showing the actual depth position
-        ax.plot([x, x], [y, y], [z, top_z], 'k-', linewidth=1, alpha=0.3, zorder=150)
+        
+        top_z = max_z + 2  
+        ax.scatter(x, y, top_z, c='black', s=250, marker='o', edgecolors='white', 
+                linewidth=5, zorder=200, alpha=1.0)
+    
+    
+        ax.plot([x, x], [y, y], [z, top_z], 'k-', linewidth=8, alpha=0.4, zorder=150)
     
     # Zoom in on the data
     ax.set_xlim(min_x, max_x)
@@ -178,19 +177,67 @@ def visualize_placement_projection_dots(env, save_path=None, show=True, step_inf
     ax.set_zlim(min_z, max_z)
     
     ax.view_init(elev=70, azim=-0.3)
-    # Remove all axis labels
+    
     ax.set_xticks([])
     ax.set_yticks([])
     ax.set_zticks([])
     ax.grid(False)
     ax.set_facecolor('white')
     
+   
+    ax.set_xlabel('')
+    ax.set_ylabel('')
+    ax.set_zlabel('')
+    
+    
+    ax.xaxis.pane.fill = False
+    ax.yaxis.pane.fill = False
+    ax.zaxis.pane.fill = False
+    
+    
+    ax.xaxis.pane.set_edgecolor('white')
+    ax.yaxis.pane.set_edgecolor('white')
+    ax.zaxis.pane.set_edgecolor('white')
+    
+    ax.xaxis.pane.set_alpha(0)
+    ax.yaxis.pane.set_alpha(0)
+    ax.zaxis.pane.set_alpha(0)
+    
+    ax.xaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
+    ax.yaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
+    ax.zaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
+
+    ax.set_axis_off()
+    
+    try:
+        ax.xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+        ax.yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+        ax.zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+        
+        # Remove tick lines
+        ax.xaxis.set_tick_params(which='both', length=0)
+        ax.yaxis.set_tick_params(which='both', length=0) 
+        ax.zaxis.set_tick_params(which='both', length=0)
+        
+        # Make axis lines transparent
+        ax.xaxis.line.set_linewidth(0)
+        ax.yaxis.line.set_linewidth(0)
+        ax.zaxis.line.set_linewidth(0)
+    except:
+        pass  
+
+    if env.sphere_positions:
+        sphere_mask = create_sphere_mask(env.sphere_positions, env.sphere_radius, env.mri_data.shape)
+        dice_score = calculate_dice_score(sphere_mask, env.lesion_data)
+    else:
+        dice_score = 0.0
+    
     placement_count = len(env.sphere_positions)
-    ax.set_title(f'3D Needle Placement {step_info}\n{placement_count} Placement(s)', 
+    ax.set_title(f'Dice: {dice_score:.3f}', 
                 fontsize=14, fontweight='bold')
     
     if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white')
+        plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white', pad_inches=0.02)
     
     if show:
         plt.show()
@@ -199,11 +246,12 @@ def visualize_placement_projection_dots(env, save_path=None, show=True, step_inf
     
     return fig
 
+
 def visualize_placement_projection_ablation(env, save_path=None, show=True, step_info="", projection_axis='axial'):
     from mpl_toolkits.mplot3d import Axes3D
     from skimage import measure
     
-    fig = plt.figure(figsize=(10, 8))
+    fig = plt.figure(figsize=(10, 8), facecolor='white')
     ax = fig.add_subplot(111, projection='3d')
     
     prostate_mask = env.mask_data > 0
@@ -240,14 +288,13 @@ def visualize_placement_projection_ablation(env, save_path=None, show=True, step
             except:
                 pass
     
-    # Calculate bounds for zooming
+   
     if np.any(prostate_mask):
         prostate_coords = np.where(prostate_mask)
         min_x, max_x = np.min(prostate_coords[0]), np.max(prostate_coords[0])
         min_y, max_y = np.min(prostate_coords[1]), np.max(prostate_coords[1])
         min_z, max_z = np.min(prostate_coords[2]), np.max(prostate_coords[2])
         
-        # Add padding
         padding = 5
         min_x = max(0, min_x - padding)
         max_x = min(env.mri_data.shape[0], max_x + padding)
@@ -262,27 +309,69 @@ def visualize_placement_projection_ablation(env, save_path=None, show=True, step
     
     for i, sphere_pos in enumerate(env.sphere_positions):
         x, y, z = sphere_pos
-        # Use same coordinate system as the ablation zones - don't swap x and y
-        top_z = max_z + 2  # Place dots above everything else
-        ax.scatter(x, y, top_z, c='black', s=150, marker='o', edgecolors='white', 
-                linewidth=3, zorder=200, alpha=1.0)
-        ax.text(x, y, top_z+2, str(i+1), fontsize=14, fontweight='bold', 
-            color='black', zorder=201)
-        # Optional: add a thin line showing the actual depth position
-        ax.plot([x, x], [y, y], [z, top_z], 'k-', linewidth=1, alpha=0.3, zorder=150)
+        
+        top_z = max_z + 2  
+        ax.scatter(x, y, top_z, c='black', s=250, marker='o', edgecolors='white', 
+                linewidth=5, zorder=200, alpha=1.0)
+        ax.plot([x, x], [y, y], [z, top_z], 'k-', linewidth=8, alpha=0.4, zorder=150)
     
-    # Zoom in on the data
+
     ax.set_xlim(min_x, max_x)
     ax.set_ylim(min_y, max_y)
     ax.set_zlim(min_z, max_z)
     
     ax.view_init(elev=70, azim=-0.3)
-    # Remove all axis labels
+    
+
     ax.set_xticks([])
     ax.set_yticks([])
     ax.set_zticks([])
     ax.grid(False)
     ax.set_facecolor('white')
+   
+    ax.set_xlabel('')
+    ax.set_ylabel('')
+    ax.set_zlabel('')
+    
+ 
+    ax.xaxis.pane.fill = False
+    ax.yaxis.pane.fill = False
+    ax.zaxis.pane.fill = False
+    
+   
+    ax.xaxis.pane.set_edgecolor('white')
+    ax.yaxis.pane.set_edgecolor('white')
+    ax.zaxis.pane.set_edgecolor('white')
+    
+  
+    ax.xaxis.pane.set_alpha(0)
+    ax.yaxis.pane.set_alpha(0)
+    ax.zaxis.pane.set_alpha(0)
+    
+ 
+    ax.xaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
+    ax.yaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
+    ax.zaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
+    
+    ax.set_axis_off()
+    
+    # Remove any remaining axis elements (with error handling)
+    try:
+        ax.xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+        ax.yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+        ax.zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+        
+        # Remove tick lines
+        ax.xaxis.set_tick_params(which='both', length=0)
+        ax.yaxis.set_tick_params(which='both', length=0) 
+        ax.zaxis.set_tick_params(which='both', length=0)
+        
+        # Make axis lines transparent
+        ax.xaxis.line.set_linewidth(0)
+        ax.yaxis.line.set_linewidth(0)
+        ax.zaxis.line.set_linewidth(0)
+    except:
+        pass  # Some matplotlib versions may not have these attributes
     
     if env.sphere_positions:
         sphere_mask = create_sphere_mask(env.sphere_positions, env.sphere_radius, env.mri_data.shape)
@@ -295,11 +384,11 @@ def visualize_placement_projection_ablation(env, save_path=None, show=True, step
         coverage_percentage = 0.0
     
     placement_count = len(env.sphere_positions)
-    ax.set_title(f'3D Needle Placement with Ablation {step_info}\n{placement_count} Placement(s), Coverage: {coverage_percentage:.1f}%, Dice: {dice_score:.3f}', 
+    ax.set_title(f'Dice: {dice_score:.3f}', 
                 fontsize=14, fontweight='bold')
     
     if save_path:
-        plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white')
+        plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white', pad_inches=0.02)
     
     if show:
         plt.show()
