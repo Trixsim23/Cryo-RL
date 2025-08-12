@@ -107,12 +107,11 @@ def visualize_placement_projection_dots(env, save_path=None, show=True, step_inf
         x, y, z = sphere_pos
         # Use same coordinate system as the ablation zones - don't swap x and y
         top_z = max_z + 2  # Place dots above everything else
-        ax.scatter(x, y, top_z, c='black', s=150, marker='o', edgecolors='white', 
-                linewidth=3, zorder=200, alpha=1.0)
-        ax.text(x, y, top_z+2, str(i+1), fontsize=14, fontweight='bold', 
-            color='black', zorder=201)
+        ax.scatter(x, y, top_z, c='black', s=250, marker='o', edgecolors='white', 
+                linewidth=5, zorder=200, alpha=1.0)
+    
         # Optional: add a thin line showing the actual depth position
-        ax.plot([x, x], [y, y], [z, top_z], 'k-', linewidth=1, alpha=0.3, zorder=150)
+        ax.plot([x, x], [y, y], [z, top_z], 'k-', linewidth=8, alpha=0.4, zorder=150)
     
     # Zoom in on the data
     ax.set_xlim(min_x, max_x)
@@ -126,9 +125,19 @@ def visualize_placement_projection_dots(env, save_path=None, show=True, step_inf
     ax.set_zticks([])
     ax.grid(False)
     ax.set_facecolor('white')
+
+    if env.sphere_positions:
+        sphere_mask = create_sphere_mask(env.sphere_positions, env.sphere_radius, env.mri_data.shape)
+        dice_score = calculate_dice_score(sphere_mask, env.lesion_data)
+        # lesion_volume = np.sum(env.lesion_data > 0)
+        # covered_volume = np.sum((sphere_mask > 0) & (env.lesion_data > 0))
+        # coverage_percentage = (covered_volume / lesion_volume * 100) if lesion_volume > 0 else 0
+    else:
+        dice_score = 0.0
+    
     
     placement_count = len(env.sphere_positions)
-    ax.set_title(f'3D Needle Placement {step_info}\n{placement_count} Placement(s)', 
+    ax.set_title(f'Dice: {dice_score:.3f}', 
                 fontsize=14, fontweight='bold')
     
     if save_path:
@@ -206,12 +215,12 @@ def visualize_placement_projection_ablation(env, save_path=None, show=True, step
         x, y, z = sphere_pos
         # Use same coordinate system as the ablation zones - don't swap x and y
         top_z = max_z + 2  # Place dots above everything else
-        ax.scatter(x, y, top_z, c='black', s=150, marker='o', edgecolors='white', 
-                linewidth=3, zorder=200, alpha=1.0)
-        ax.text(x, y, top_z+2, str(i+1), fontsize=14, fontweight='bold', 
-            color='black', zorder=201)
+        ax.scatter(x, y, top_z, c='black', s=250, marker='o', edgecolors='white', 
+                linewidth=5, zorder=200, alpha=1.0)
+        # ax.text(x, y, top_z+2, str(i+1), fontsize=30, fontweight='bold', 
+        #     color='black', zorder=201)
         # Optional: add a thin line showing the actual depth position
-        ax.plot([x, x], [y, y], [z, top_z], 'k-', linewidth=1, alpha=0.3, zorder=150)
+        ax.plot([x, x], [y, y], [z, top_z], 'k-', linewidth=8, alpha=0.4, zorder=150)
     
     # Zoom in on the data
     ax.set_xlim(min_x, max_x)
@@ -237,7 +246,7 @@ def visualize_placement_projection_ablation(env, save_path=None, show=True, step
         coverage_percentage = 0.0
     
     placement_count = len(env.sphere_positions)
-    ax.set_title(f'3D Needle Placement with Ablation {step_info}\n{placement_count} Placement(s), Coverage: {coverage_percentage:.1f}%, Dice: {dice_score:.3f}', 
+    ax.set_title(f'Dice: {dice_score:.3f}', 
                 fontsize=14, fontweight='bold')
     
     if save_path:
@@ -294,21 +303,33 @@ def create_projection_grid(results_list, save_folder, visualization_type="", tit
     from PIL import Image
     import tempfile
     
-    num_patients = len(results_list)
+    # Select 8 patients using every other patient logic
+    total_patients = len(results_list)
+    selected_indices = []
     
-    # Calculate grid dimensions (prefer rectangular grid)
-    if num_patients <= 4:
-        rows, cols = 2, 2
-    elif num_patients <= 6:
-        rows, cols = 2, 3
-    elif num_patients <= 9:
-        rows, cols = 3, 3
-    elif num_patients <= 12:
-        rows, cols = 3, 4
-    elif num_patients <= 16:
-        rows, cols = 4, 4
-    else:
-        rows, cols = 4, 5  # Maximum grid size
+    # First, try every other patient starting from 0 (patient 1, 3, 5, 7...)
+    for i in range(0, total_patients, 2):
+        selected_indices.append(i)
+        if len(selected_indices) >= 8:
+            break
+    
+    # If we don't have 8 patients, work backwards to fill remaining slots
+    if len(selected_indices) < 8:
+        # Add remaining patients working backwards from even indices
+        for i in range(1, total_patients, 2):  # 1, 3, 5, 7... (patient 2, 4, 6, 8...)
+            if i not in selected_indices:
+                selected_indices.append(i)
+                if len(selected_indices) >= 8:
+                    break
+    
+    # Limit to 8 patients maximum
+    selected_indices = selected_indices[:8]
+    selected_results = [results_list[i] for i in selected_indices]
+    
+    print(f"Selected patients: {[i+1 for i in selected_indices]}")
+    
+    # Fixed grid dimensions for 8 patients
+    rows, cols = 2, 4
     
     # Create temporary directory for individual images
     temp_dir = tempfile.mkdtemp()
@@ -317,10 +338,7 @@ def create_projection_grid(results_list, save_folder, visualization_type="", tit
     print(f"Creating individual {visualization_type} projections for grid...")
     
     # Generate individual projection images
-    for i, result in enumerate(results_list):
-        if i >= rows * cols:  # Don't exceed grid capacity
-            break
-            
+    for i, result in enumerate(selected_results):
         env = result['env']
         dice_score = result['dice_score']
         coverage = result['coverage_percentage']
@@ -345,52 +363,44 @@ def create_projection_grid(results_list, save_folder, visualization_type="", tit
                 )
             
             temp_images.append(temp_path)
-            print(f"  ✓ Created {visualization_type} for Patient {i+1}")
+            print(f"  ✓ Created {visualization_type} for Patient {selected_indices[i]+1}")
             
         except Exception as e:
-            print(f"  ✗ Error creating {visualization_type} for Patient {i+1}: {e}")
+            print(f"  ✗ Error creating {visualization_type} for Patient {selected_indices[i]+1}: {e}")
             temp_images.append(None)
     
-    # Create the grid
-    fig, axes = plt.subplots(rows, cols, figsize=(cols * 4, rows * 4))
-    if rows == 1:
-        axes = [axes] if cols == 1 else axes
-    elif cols == 1:
-        axes = [[ax] for ax in axes]
-    elif rows == 1 or cols == 1:
-        axes = axes.reshape(rows, cols)
+    # Create the grid with minimal spacing
+    fig, axes = plt.subplots(rows, cols, figsize=(cols * 3, rows * 3))
     
     # Display images in grid
     for i in range(rows * cols):
         row = i // cols
         col = i % cols
-        ax = axes[row][col] if rows > 1 else axes[col]
+        ax = axes[row, col]
         
         if i < len(temp_images) and temp_images[i] is not None:
             try:
                 # Load and display the image
                 img = mpimg.imread(temp_images[i])
                 ax.imshow(img)
-                ax.set_title(f'Patient {i+1}', fontsize=12, fontweight='bold')
+                # Remove subplot title as requested
             except Exception as e:
-                print(f"Error loading image for Patient {i+1}: {e}")
-                ax.text(0.5, 0.5, f'Error\nPatient {i+1}', ha='center', va='center', transform=ax.transAxes)
-                ax.set_title(f'Patient {i+1}', fontsize=12, fontweight='bold')
+                print(f"Error loading image for Patient {selected_indices[i]+1}: {e}")
+                ax.text(0.5, 0.5, f'Error\nPatient {selected_indices[i]+1}', ha='center', va='center', transform=ax.transAxes)
         else:
             ax.set_visible(False)
         
-        # Remove axis ticks and labels as requested
+        # Remove axis ticks and labels
         ax.set_xticks([])
         ax.set_yticks([])
         ax.axis('off')
     
-    # Set overall title
-    fig.suptitle(title, fontsize=16, fontweight='bold', y=0.95)
-    plt.tight_layout(rect=[0, 0, 1, 0.93])
+    # Remove main title and minimize spacing
+    plt.subplots_adjust(left=0.02, bottom=0.02, right=0.98, top=0.98, wspace=0.05, hspace=0.05)
     
     # Save the grid
     save_path = os.path.join(save_folder, f'projection_{visualization_type}_grid.png')
-    plt.savefig(save_path, dpi=150, bbox_inches='tight', facecolor='white')
+    plt.savefig(save_path, dpi=150, bbox_inches='tight', facecolor='white', pad_inches=0.1)
     plt.close()
     
     # Clean up temporary files
