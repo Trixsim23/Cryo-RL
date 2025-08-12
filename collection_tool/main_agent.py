@@ -111,6 +111,294 @@ def calculate_dice_score(prediction_mask, target_mask):
 
 
 # ============================================================================
+# 2D PROJECTION VISUALIZATION FUNCTIONS
+# ============================================================================
+def visualize_placement_projection_dots(env, save_path=None, show=True, step_info="", projection_axis='axial'):
+    from mpl_toolkits.mplot3d import Axes3D
+    from skimage import measure
+    
+    fig = plt.figure(figsize=(10, 8), facecolor='white')
+    ax = fig.add_subplot(111, projection='3d')
+    
+    prostate_mask = env.mask_data > 0
+    lesion_mask = env.lesion_data > 0
+    
+    if np.any(prostate_mask):
+        try:
+            verts_p, faces_p, _, _ = measure.marching_cubes(prostate_mask.astype(float), level=0.5)
+            ax.plot_trisurf(verts_p[:, 0], verts_p[:, 1], verts_p[:, 2], 
+                           triangles=faces_p, color=[1, 0.4, 0.5], alpha=0.3, 
+                           linewidth=0, shade=True)
+        except:
+            pass
+    
+    if np.any(lesion_mask):
+        try:
+            verts_l, faces_l, _, _ = measure.marching_cubes(lesion_mask.astype(float), level=0.5)
+            ax.plot_trisurf(verts_l[:, 0], verts_l[:, 1], verts_l[:, 2], 
+                           triangles=faces_l, color=[0.4, 1, 0.8], alpha=0.8, 
+                           linewidth=0, shade=True)
+        except:
+            pass
+    
+    # Calculate bounds for zooming
+    if np.any(prostate_mask):
+        prostate_coords = np.where(prostate_mask)
+        min_x, max_x = np.min(prostate_coords[0]), np.max(prostate_coords[0])
+        min_y, max_y = np.min(prostate_coords[1]), np.max(prostate_coords[1])
+        min_z, max_z = np.min(prostate_coords[2]), np.max(prostate_coords[2])
+        
+        # Add padding
+        padding = 5
+        min_x = max(0, min_x - padding)
+        max_x = min(env.mri_data.shape[0], max_x + padding)
+        min_y = max(0, min_y - padding)
+        max_y = min(env.mri_data.shape[1], max_y + padding)
+        min_z = max(0, min_z - padding)
+        max_z = min(env.mri_data.shape[2], max_z + padding)
+    else:
+        min_x, max_x = 0, env.mri_data.shape[0]
+        min_y, max_y = 0, env.mri_data.shape[1]
+        min_z, max_z = 0, env.mri_data.shape[2]
+    
+    for i, sphere_pos in enumerate(env.sphere_positions):
+        x, y, z = sphere_pos
+        
+        top_z = max_z + 2  
+        ax.scatter(x, y, top_z, c='black', s=250, marker='o', edgecolors='white', 
+                linewidth=5, zorder=200, alpha=1.0)
+    
+    
+        ax.plot([x, x], [y, y], [z, top_z], 'k-', linewidth=8, alpha=0.4, zorder=150)
+    
+    # Zoom in on the data
+    ax.set_xlim(min_x, max_x)
+    ax.set_ylim(min_y, max_y)
+    ax.set_zlim(min_z, max_z)
+    
+    ax.view_init(elev=70, azim=-0.3)
+    
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+    ax.grid(False)
+    ax.set_facecolor('white')
+    
+   
+    ax.set_xlabel('')
+    ax.set_ylabel('')
+    ax.set_zlabel('')
+    
+    
+    ax.xaxis.pane.fill = False
+    ax.yaxis.pane.fill = False
+    ax.zaxis.pane.fill = False
+    
+    
+    ax.xaxis.pane.set_edgecolor('white')
+    ax.yaxis.pane.set_edgecolor('white')
+    ax.zaxis.pane.set_edgecolor('white')
+    
+    ax.xaxis.pane.set_alpha(0)
+    ax.yaxis.pane.set_alpha(0)
+    ax.zaxis.pane.set_alpha(0)
+    
+    ax.xaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
+    ax.yaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
+    ax.zaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
+
+    ax.set_axis_off()
+    
+    try:
+        ax.xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+        ax.yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+        ax.zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+        
+        # Remove tick lines
+        ax.xaxis.set_tick_params(which='both', length=0)
+        ax.yaxis.set_tick_params(which='both', length=0) 
+        ax.zaxis.set_tick_params(which='both', length=0)
+        
+        # Make axis lines transparent
+        ax.xaxis.line.set_linewidth(0)
+        ax.yaxis.line.set_linewidth(0)
+        ax.zaxis.line.set_linewidth(0)
+    except:
+        pass  
+
+    if env.sphere_positions:
+        sphere_mask = create_sphere_mask(env.sphere_positions, env.sphere_radius, env.mri_data.shape)
+        dice_score = calculate_dice_score(sphere_mask, env.lesion_data)
+    else:
+        dice_score = 0.0
+    
+    placement_count = len(env.sphere_positions)
+    ax.set_title(f'Dice: {dice_score:.3f}', 
+                fontsize=14, fontweight='bold')
+    
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white', pad_inches=0.02)
+    
+    if show:
+        plt.show()
+    else:
+        plt.close()
+    
+    return fig
+
+
+def visualize_placement_projection_ablation(env, save_path=None, show=True, step_info="", projection_axis='axial'):
+    from mpl_toolkits.mplot3d import Axes3D
+    from skimage import measure
+    
+    fig = plt.figure(figsize=(10, 8), facecolor='white')
+    ax = fig.add_subplot(111, projection='3d')
+    
+    prostate_mask = env.mask_data > 0
+    lesion_mask = env.lesion_data > 0
+    
+    if np.any(prostate_mask):
+        try:
+            verts_p, faces_p, _, _ = measure.marching_cubes(prostate_mask.astype(float), level=0.5)
+            ax.plot_trisurf(verts_p[:, 0], verts_p[:, 1], verts_p[:, 2], 
+                           triangles=faces_p, color=[1, 0.4, 0.5], alpha=0.3, 
+                           linewidth=0, shade=True)
+        except:
+            pass
+    
+    if np.any(lesion_mask):
+        try:
+            verts_l, faces_l, _, _ = measure.marching_cubes(lesion_mask.astype(float), level=0.5)
+            ax.plot_trisurf(verts_l[:, 0], verts_l[:, 1], verts_l[:, 2], 
+                           triangles=faces_l, color=[0.4, 1, 0.8], alpha=0.8, 
+                           linewidth=0, shade=True)
+        except:
+            pass
+    
+    if env.sphere_positions:
+        sphere_mask = create_sphere_mask(env.sphere_positions, env.sphere_radius, env.mri_data.shape)
+        ablation_mask = sphere_mask > 0
+        
+        if np.any(ablation_mask):
+            try:
+                verts_a, faces_a, _, _ = measure.marching_cubes(ablation_mask.astype(float), level=0.5)
+                ax.plot_trisurf(verts_a[:, 0], verts_a[:, 1], verts_a[:, 2], 
+                               triangles=faces_a, color=[0.3, 0.6, 0.9], alpha=0.5, 
+                               linewidth=0, shade=True)
+            except:
+                pass
+    
+   
+    if np.any(prostate_mask):
+        prostate_coords = np.where(prostate_mask)
+        min_x, max_x = np.min(prostate_coords[0]), np.max(prostate_coords[0])
+        min_y, max_y = np.min(prostate_coords[1]), np.max(prostate_coords[1])
+        min_z, max_z = np.min(prostate_coords[2]), np.max(prostate_coords[2])
+        
+        padding = 5
+        min_x = max(0, min_x - padding)
+        max_x = min(env.mri_data.shape[0], max_x + padding)
+        min_y = max(0, min_y - padding)
+        max_y = min(env.mri_data.shape[1], max_y + padding)
+        min_z = max(0, min_z - padding)
+        max_z = min(env.mri_data.shape[2], max_z + padding)
+    else:
+        min_x, max_x = 0, env.mri_data.shape[0]
+        min_y, max_y = 0, env.mri_data.shape[1]
+        min_z, max_z = 0, env.mri_data.shape[2]
+    
+    for i, sphere_pos in enumerate(env.sphere_positions):
+        x, y, z = sphere_pos
+        
+        top_z = max_z + 2  
+        ax.scatter(x, y, top_z, c='black', s=250, marker='o', edgecolors='white', 
+                linewidth=5, zorder=200, alpha=1.0)
+        ax.plot([x, x], [y, y], [z, top_z], 'k-', linewidth=8, alpha=0.4, zorder=150)
+    
+
+    ax.set_xlim(min_x, max_x)
+    ax.set_ylim(min_y, max_y)
+    ax.set_zlim(min_z, max_z)
+    
+    ax.view_init(elev=70, azim=-0.3)
+    
+
+    ax.set_xticks([])
+    ax.set_yticks([])
+    ax.set_zticks([])
+    ax.grid(False)
+    ax.set_facecolor('white')
+   
+    ax.set_xlabel('')
+    ax.set_ylabel('')
+    ax.set_zlabel('')
+    
+ 
+    ax.xaxis.pane.fill = False
+    ax.yaxis.pane.fill = False
+    ax.zaxis.pane.fill = False
+    
+   
+    ax.xaxis.pane.set_edgecolor('white')
+    ax.yaxis.pane.set_edgecolor('white')
+    ax.zaxis.pane.set_edgecolor('white')
+    
+  
+    ax.xaxis.pane.set_alpha(0)
+    ax.yaxis.pane.set_alpha(0)
+    ax.zaxis.pane.set_alpha(0)
+    
+ 
+    ax.xaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
+    ax.yaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
+    ax.zaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
+    
+    ax.set_axis_off()
+    
+    # Remove any remaining axis elements (with error handling)
+    try:
+        ax.xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+        ax.yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+        ax.zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
+        
+        # Remove tick lines
+        ax.xaxis.set_tick_params(which='both', length=0)
+        ax.yaxis.set_tick_params(which='both', length=0) 
+        ax.zaxis.set_tick_params(which='both', length=0)
+        
+        # Make axis lines transparent
+        ax.xaxis.line.set_linewidth(0)
+        ax.yaxis.line.set_linewidth(0)
+        ax.zaxis.line.set_linewidth(0)
+    except:
+        pass  # Some matplotlib versions may not have these attributes
+    
+    if env.sphere_positions:
+        sphere_mask = create_sphere_mask(env.sphere_positions, env.sphere_radius, env.mri_data.shape)
+        dice_score = calculate_dice_score(sphere_mask, env.lesion_data)
+        lesion_volume = np.sum(env.lesion_data > 0)
+        covered_volume = np.sum((sphere_mask > 0) & (env.lesion_data > 0))
+        coverage_percentage = (covered_volume / lesion_volume * 100) if lesion_volume > 0 else 0
+    else:
+        dice_score = 0.0
+        coverage_percentage = 0.0
+    
+    placement_count = len(env.sphere_positions)
+    ax.set_title(f'Dice: {dice_score:.3f}', 
+                fontsize=14, fontweight='bold')
+    
+    if save_path:
+        plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white', pad_inches=0.02)
+    
+    if show:
+        plt.show()
+    else:
+        plt.close()
+    
+    return fig
+
+
+# ============================================================================
 # ENHANCED VISUALIZATION FUNCTIONS
 # ============================================================================
 
@@ -330,146 +618,13 @@ def enhanced_visualize_spheres_with_numbers(env, slice_idx=None, save_path=None,
     return fig
 
 
-def visualize_3d_volume_rendering(env, save_path=None, show=True, step_info="", opacity_threshold=0.3):
-    """
-    FIXED: Create 3D volume rendering with proper title spacing
-    """
-    from mpl_toolkits.mplot3d import Axes3D
-    
-    fig = plt.figure(figsize=(16, 12))
-    
-    # Create 2x2 subplot layout for different 3D views
-    ax1 = fig.add_subplot(2, 2, 1, projection='3d')
-    ax2 = fig.add_subplot(2, 2, 2, projection='3d')
-    ax3 = fig.add_subplot(2, 2, 3, projection='3d')
-    ax4 = fig.add_subplot(2, 2, 4, projection='3d')
-    
-    axes = [ax1, ax2, ax3, ax4]
-    view_angles = [(30, 45), (-30, 45), (30, -45), (60, 30)]  # Different viewing angles
-    view_names = ['Anterior-Superior', 'Posterior-Superior', 'Anterior-Inferior', 'Lateral-Superior']
-    
-    for idx, (ax, (elev, azim), view_name) in enumerate(zip(axes, view_angles, view_names)):
-        ax.clear()
-        
-        # Plot prostate boundary (mask) as semi-transparent surface
-        if np.any(env.mask_data > 0):
-            mask_coords = np.where(env.mask_data > opacity_threshold)
-            if len(mask_coords[0]) > 0:
-                # Subsample for performance (every 2nd voxel)
-                subsample = slice(None, None, 2)
-                ax.scatter(mask_coords[1][subsample], mask_coords[0][subsample], mask_coords[2][subsample], 
-                          c='blue', alpha=0.1, s=1, label='Prostate Boundary')
-        
-        # Plot lesion as more opaque surface
-        if np.any(env.lesion_data > 0):
-            lesion_coords = np.where(env.lesion_data > opacity_threshold)
-            if len(lesion_coords[0]) > 0:
-                ax.scatter(lesion_coords[1], lesion_coords[0], lesion_coords[2], 
-                          c='red', alpha=0.4, s=4, label='Lesion Volume')
-        
-        # Show 3D spheres at placement locations
-        sphere_colors = ['yellow', 'cyan', 'magenta', 'lime', 'orange']
-        
-        for i, sphere_pos in enumerate(env.sphere_positions):
-            x_center, y_center, z_center = sphere_pos
-            color = sphere_colors[i % len(sphere_colors)]
-            
-            # Create sphere surface using parametric equations
-            u = np.linspace(0, 2 * np.pi, 20)
-            v = np.linspace(0, np.pi, 20)
-            radius = env.sphere_radius
-            
-            x_sphere = radius * np.outer(np.cos(u), np.sin(v)) + y_center  # Note: swapped for display
-            y_sphere = radius * np.outer(np.sin(u), np.sin(v)) + x_center
-            z_sphere = radius * np.outer(np.ones(np.size(u)), np.cos(v)) + z_center
-            
-            # Plot sphere surface
-            ax.plot_surface(x_sphere, y_sphere, z_sphere, color=color, alpha=0.8)
-            
-            # Add sphere number label
-            ax.text(y_center, x_center, z_center + radius + 2, f'{i+1}', 
-                   fontsize=14, fontweight='bold', color='black',
-                   bbox=dict(boxstyle="circle,pad=0.3", facecolor='white', alpha=0.8))
-        
-        # Set equal aspect ratio and labels
-        ax.set_xlim([0, env.mri_data.shape[1]])
-        ax.set_ylim([0, env.mri_data.shape[0]])
-        ax.set_zlim([0, env.mri_data.shape[2]])
-        
-        # Medical imaging coordinate labels
-        ax.set_xlabel('Y (Anterior-Posterior)', fontsize=10)
-        ax.set_ylabel('X (Left-Right)', fontsize=10)
-        ax.set_zlabel('Z (Superior-Inferior)', fontsize=10)
-        
-        # Set viewing angle
-        ax.view_init(elev=elev, azim=azim)
-        
-        # FIXED: Title for each view with reduced font size and padding
-        ax.set_title(f'{view_name} View {step_info}', fontsize=11, fontweight='bold', pad=10)
-        
-        # Grid and background
-        ax.grid(True, alpha=0.3)
-        ax.xaxis.pane.fill = False
-        ax.yaxis.pane.fill = False
-        ax.zaxis.pane.fill = False
-    
-    # Create custom legend
-    legend_elements = [
-        plt.Line2D([0], [0], marker='o', color='w', markerfacecolor='blue', 
-                   markersize=8, alpha=0.6, label='Prostate Volume'),
-        plt.Line2D([0], [0], marker='s', color='w', markerfacecolor='red', 
-                   markersize=8, alpha=0.8, label='Lesion Volume')
-    ]
-    
-    # Add sphere legend entries
-    for i in range(len(env.sphere_positions)):
-        color = sphere_colors[i % len(sphere_colors)]
-        x, y, z = env.sphere_positions[i]
-        legend_elements.append(
-            plt.Line2D([0], [0], marker='o', color='w', markerfacecolor=color, 
-                      markersize=10, alpha=0.9, 
-                      label=f'Sphere {i+1} ({x}, {y}, {z})')
-        )
-    
-    # FIXED: Use tight_layout with proper spacing for title and legend
-    plt.tight_layout(rect=[0, 0.08, 1, 0.90])  # [left, bottom, right, top] - leaves space for title and legend
-    
-    # FIXED: Place legend in the reserved bottom space
-    fig.legend(handles=legend_elements, loc='lower center', bbox_to_anchor=(0.5, 0.01), 
-              ncol=min(4, len(legend_elements)), fontsize=10)
-    
-    # FIXED: Overall title positioned in the reserved top space
-    fig.suptitle(f'3D Volume Rendering: Prostate Cryoablation Planning {step_info}', 
-                fontsize=16, fontweight='bold', y=0.96)  # Moved higher from y=0.95 to y=0.96
-    
-    # Print sphere placement summary
-    print(f"\n3D Volume Rendering Summary:")
-    print(f"  Prostate volume: {np.sum(env.mask_data > 0)} voxels")
-    print(f"  Lesion volume: {np.sum(env.lesion_data > 0)} voxels")
-    print(f"  Spheres placed: {len(env.sphere_positions)}")
-    for i, pos in enumerate(env.sphere_positions):
-        print(f"    Sphere {i+1}: Position ({pos[0]}, {pos[1]}, {pos[2]}), Radius: {env.sphere_radius}")
-    
-    # Save the figure
-    if save_path:
-        plt.savefig(save_path, dpi=150, bbox_inches='tight')
-        print(f"3D volume rendering saved: {save_path}")
-    
-    if show:
-        plt.show()
-    else:
-        plt.close()
-    
-    return fig
-
-
 # ============================================================================
-# ENHANCED STEP VISUALIZATION FUNCTIONS
+# ENHANCED STEP VISUALIZATION FUNCTIONS - UPDATED TO USE 2D PROJECTIONS
 # ============================================================================
 
-def visualize_individual_step_placement(env, step_num, save_folder, patient_id, dice_score=None, create_3d=False):
+def visualize_individual_step_placement(env, step_num, save_folder, patient_id, dice_score=None, create_projections=True):
     """
-    FIXED: Individual step visualization with improved slice selection for lesion visibility
+    UPDATED: Individual step visualization with 2D projections instead of 3D
     Now uses optimal slice selection that prioritizes showing both lesions and spheres
     
     Args:
@@ -478,60 +633,11 @@ def visualize_individual_step_placement(env, step_num, save_folder, patient_id, 
         save_folder: Folder to save visualizations
         patient_id: Patient identifier
         dice_score: Optional dice score for this step
-        create_3d: Whether to also create 3D visualization (computationally expensive)
+        create_projections: Whether to create 2D projection visualizations
     
     Returns:
-        tuple: Paths to created visualizations (enhanced_2d_path, volume_3d_path)
+        tuple: Paths to created visualizations
     """
-    # IMPROVED: Better slice selection for optimal lesion and sphere visibility
-    if env.sphere_positions:
-        # Find slice that best shows both lesion and spheres
-        lesion_slices_with_content = []
-        
-        # Find all slices that contain lesion data
-        for z in range(env.lesion_data.shape[2]):
-            if np.any(env.lesion_data[:, :, z] > 0):
-                lesion_volume_in_slice = np.sum(env.lesion_data[:, :, z] > 0)
-                lesion_slices_with_content.append((z, lesion_volume_in_slice))
-        
-        if lesion_slices_with_content:
-            # Find slice that optimizes both lesion visibility and sphere proximity
-            sphere_z_positions = [pos[2] for pos in env.sphere_positions]
-            median_sphere_z = np.median(sphere_z_positions)
-            
-            # Score each lesion-containing slice
-            best_slice = None
-            best_score = -1
-            
-            for z, lesion_vol in lesion_slices_with_content:
-                # Score based on lesion volume and sphere proximity
-                sphere_proximity_score = max(0, 5 - abs(z - median_sphere_z))
-                lesion_volume_score = lesion_vol / 100
-                
-                total_score = lesion_volume_score + sphere_proximity_score
-                
-                if total_score > best_score:
-                    best_score = total_score
-                    best_slice = z
-            
-            slice_idx = best_slice if best_slice is not None else int(median_sphere_z)
-        else:
-            # No lesion visible, use sphere-based selection
-            z_positions = [pos[2] for pos in env.sphere_positions]
-            slice_idx = int(np.median(z_positions))
-    else:
-        # No spheres placed yet - find slice with most lesion content
-        lesion_slices_with_content = []
-        for z in range(env.lesion_data.shape[2]):
-            if np.any(env.lesion_data[:, :, z] > 0):
-                lesion_volume_in_slice = np.sum(env.lesion_data[:, :, z] > 0)
-                lesion_slices_with_content.append((z, lesion_volume_in_slice))
-        
-        if lesion_slices_with_content:
-            slice_idx = max(lesion_slices_with_content, key=lambda x: x[1])[0]
-        else:
-            slice_idx = env.mri_data.shape[2] // 2
-    
     # Prepare step info
     step_info = f"Step {step_num}"
     if dice_score is not None:
@@ -541,37 +647,47 @@ def visualize_individual_step_placement(env, step_num, save_folder, patient_id, 
     enhanced_2d_path = os.path.join(save_folder, f'enhanced_step_patient_{patient_id}_step_{step_num}.png')
     enhanced_visualize_spheres_with_numbers(
         env=env,
-        slice_idx=slice_idx,
+        slice_idx=None,  # Use automatic optimal slice selection
         save_path=enhanced_2d_path,
         show=False,
         step_info=step_info
     )
     
-    # OPTIONALLY CREATE 3D VISUALIZATION
-    volume_3d_path = None
-    if create_3d:
-        volume_3d_path = os.path.join(save_folder, f'3d_step_patient_{patient_id}_step_{step_num}.png')
-        try:
-            visualize_3d_volume_rendering(
-                env=env,
-                save_path=volume_3d_path,
-                show=False,
-                step_info=step_info
-            )
-            print(f"    ✓ 3D visualization: {volume_3d_path}")
-        except Exception as e:
-            print(f"    ⚠ 3D visualization failed (optional): {e}")
-            volume_3d_path = None
+    # CREATE 2D PROJECTION VISUALIZATIONS (replacing 3D)
+    projection_dots_path = None
+    projection_ablation_path = None
     
-    print(f"    ✓ Enhanced 2D (optimized slice {slice_idx}): {enhanced_2d_path}")
+    if create_projections:
+        # Dots only version
+        projection_dots_path = os.path.join(save_folder, f'projection_dots_patient_{patient_id}_step_{step_num}.png')
+        visualize_placement_projection_dots(
+            env=env,
+            save_path=projection_dots_path,
+            show=False,
+            step_info=step_info,
+            projection_axis='axial'
+        )
+        
+        # With ablation zones version
+        projection_ablation_path = os.path.join(save_folder, f'projection_ablation_patient_{patient_id}_step_{step_num}.png')
+        visualize_placement_projection_ablation(
+            env=env,
+            save_path=projection_ablation_path,
+            show=False,
+            step_info=step_info,
+            projection_axis='axial'
+        )
+        
+        print(f"    ✓ 2D projections: {projection_dots_path}, {projection_ablation_path}")
     
-    return enhanced_2d_path, volume_3d_path
+    print(f"    ✓ Enhanced 2D (optimized slice): {enhanced_2d_path}")
+    
+    return enhanced_2d_path, projection_dots_path, projection_ablation_path
 
 
 def create_sphere_progression_summary(env, save_folder, patient_id):
     """
     Create a summary showing progression of sphere placements
-    (Your original function, unchanged)
     """
     slice_idx = env.mri_data.shape[2] // 2
     
@@ -624,7 +740,7 @@ def create_sphere_progression_summary(env, save_folder, patient_id):
 
 def create_detailed_analysis_plot(env, save_path, patient_id, final_dice, coverage_percentage, sphere_volumes):
     """
-    NEW: Create detailed quantitative analysis visualization
+    Create detailed quantitative analysis visualization
     """
     fig, axes = plt.subplots(2, 2, figsize=(16, 12))
     
@@ -731,16 +847,16 @@ Dice Quality: {'Excellent' if final_dice > 0.8 else 'Good' if final_dice > 0.6 e
     plt.close()
 
 
-def create_final_comprehensive_evaluation_2d_only(env, save_folder, patient_id, final_dice_score, create_3d=False):
+def create_final_comprehensive_evaluation_2d_only(env, save_folder, patient_id, final_dice_score, create_projections=True):
     """
-    FIXED: Create comprehensive final evaluation with only improved 2D visualization (multiview removed)
+    UPDATED: Create comprehensive final evaluation with 2D projections instead of 3D
     
     Args:
         env: Environment containing the sphere placement data
         save_folder: Folder to save all visualizations
         patient_id: Patient identifier
         final_dice_score: Final dice score for this patient
-        create_3d: Whether to create 3D visualization (computationally expensive)
+        create_projections: Whether to create 2D projection visualizations
     
     Returns:
         dict: Dictionary with paths to all created visualizations and results summary
@@ -789,21 +905,32 @@ def create_final_comprehensive_evaluation_2d_only(env, save_folder, patient_id, 
         step_info=step_info
     )
     
-    # Optionally create 3D volume rendering
-    volume_3d_path = None
-    if create_3d:
-        volume_3d_path = os.path.join(save_folder, f'final_volume_3d_patient_{patient_id}.png')
-        try:
-            visualize_3d_volume_rendering(
-                env=env,
-                save_path=volume_3d_path,
-                show=False,
-                step_info=step_info
-            )
-            print(f"  ✓ 3D volume rendering: {volume_3d_path}")
-        except Exception as e:
-            print(f"  ⚠ 3D visualization failed (optional): {e}")
-            volume_3d_path = None
+    # Create 2D projection visualizations (replacing 3D)
+    projection_dots_path = None
+    projection_ablation_path = None
+    
+    if create_projections:
+        # Dots only version
+        projection_dots_path = os.path.join(save_folder, f'final_projection_dots_patient_{patient_id}.png')
+        visualize_placement_projection_dots(
+            env=env,
+            save_path=projection_dots_path,
+            show=False,
+            step_info=step_info,
+            projection_axis='axial'
+        )
+        
+        # With ablation zones version  
+        projection_ablation_path = os.path.join(save_folder, f'final_projection_ablation_patient_{patient_id}.png')
+        visualize_placement_projection_ablation(
+            env=env,
+            save_path=projection_ablation_path,
+            show=False,
+            step_info=step_info,
+            projection_axis='axial'
+        )
+        
+        print(f"  ✓ 2D projections: {projection_dots_path}, {projection_ablation_path}")
     
     # Create detailed analysis plot
     analysis_path = os.path.join(save_folder, f'final_analysis_patient_{patient_id}.png')
@@ -838,7 +965,8 @@ def create_final_comprehensive_evaluation_2d_only(env, save_folder, patient_id, 
     
     return {
         'enhanced_2d_path': enhanced_2d_path,
-        'volume_3d_path': volume_3d_path,
+        'projection_dots_path': projection_dots_path,
+        'projection_ablation_path': projection_ablation_path,
         'analysis_path': analysis_path,
         'progression_path': progression_path,
         'json_path': json_path,
@@ -847,31 +975,31 @@ def create_final_comprehensive_evaluation_2d_only(env, save_folder, patient_id, 
 
 
 # ============================================================================
-# ENHANCED EVALUATION FUNCTIONS
+# ENHANCED EVALUATION FUNCTIONS - UPDATED TO USE 2D PROJECTIONS
 # ============================================================================
 
-def run_enhanced_evaluation_loop(model, eval_envs, results_folder, create_3d=False):
+def run_enhanced_evaluation_loop(model, eval_envs, results_folder, create_projections=True):
     """
-    FIXED: Enhanced evaluation loop with improved 2D visualization (multiview removed)
+    UPDATED: Enhanced evaluation loop with 2D projections instead of 3D
     
     Args:
         model: Trained RL model
         eval_envs: List of evaluation environments
         results_folder: Folder to save results
-        create_3d: Whether to create 3D visualizations (computationally expensive)
+        create_projections: Whether to create 2D projection visualizations
     
     Returns:
         tuple: (final_rewards, final_dice_scores, comprehensive_results)
     """
-    print(f"\nRunning enhanced evaluation with improved 2D visualization...")
-    print(f"3D visualization: {'Enabled' if create_3d else 'Disabled (for speed)'}")
+    print(f"\nRunning enhanced evaluation with 2D projection visualizations...")
+    print(f"2D projections: {'Enabled' if create_projections else 'Disabled'}")
     
     final_rewards = []
     final_dice_scores = []
     comprehensive_results = []
     
     for i, eval_env in enumerate(eval_envs):
-        print(f"\nEvaluating Patient {i+1}/{len(eval_envs)} with improved 2D analysis...")
+        print(f"\nEvaluating Patient {i+1}/{len(eval_envs)} with 2D projection analysis...")
         
         # Create individual patient folder
         patient_folder = os.path.join(results_folder, f'patient_{i+1}_analysis')
@@ -887,8 +1015,8 @@ def run_enhanced_evaluation_loop(model, eval_envs, results_folder, create_3d=Fal
         
         # Initial state visualization
         print(f"  Creating initial visualizations...")
-        enhanced_path, volume_3d_path = visualize_individual_step_placement(
-            eval_env, step_num, patient_folder, i+1, dice_score=0.0, create_3d=create_3d
+        enhanced_path, dots_path, ablation_path = visualize_individual_step_placement(
+            eval_env, step_num, patient_folder, i+1, dice_score=0.0, create_projections=create_projections
         )
         
         # Calculate initial dice score
@@ -896,7 +1024,7 @@ def run_enhanced_evaluation_loop(model, eval_envs, results_folder, create_3d=Fal
         initial_dice = calculate_dice_score(initial_sphere_mask, eval_env.lesion_data)
         step_dice_scores.append(initial_dice)
         
-        # Step-by-step evaluation with improved 2D visualization
+        # Step-by-step evaluation with 2D projections
         while not done:
             action, _ = model.predict(obs, deterministic=True)
             obs, reward, done, info = eval_env.step(action)
@@ -911,15 +1039,15 @@ def run_enhanced_evaluation_loop(model, eval_envs, results_folder, create_3d=Fal
             dice_score = calculate_dice_score(sphere_mask, eval_env.lesion_data)
             step_dice_scores.append(dice_score)
             
-            # Create improved 2D visualization for this step
+            # Create 2D projection visualizations for this step
             print(f"    Step {step_num}: Reward = {reward:.2f}, Dice = {dice_score:.3f}")
-            enhanced_path, volume_3d_path = visualize_individual_step_placement(
-                eval_env, step_num, patient_folder, i+1, dice_score, create_3d=create_3d
+            enhanced_path, dots_path, ablation_path = visualize_individual_step_placement(
+                eval_env, step_num, patient_folder, i+1, dice_score, create_projections=create_projections
             )
         
-        # Create comprehensive final evaluation (without multiview)
+        # Create comprehensive final evaluation (with 2D projections)
         final_results = create_final_comprehensive_evaluation_2d_only(
-            eval_env, patient_folder, i+1, step_dice_scores[-1], create_3d=create_3d
+            eval_env, patient_folder, i+1, step_dice_scores[-1], create_projections=create_projections
         )
         
         # Store results
@@ -957,7 +1085,7 @@ def run_enhanced_evaluation_loop(model, eval_envs, results_folder, create_3d=Fal
 
 
 # ============================================================================
-# TRAINING CALLBACK (Your original, unchanged)
+# TRAINING CALLBACK
 # ============================================================================
 
 class TrainingCallback(BaseCallback):
@@ -998,15 +1126,15 @@ class TrainingCallback(BaseCallback):
 
 
 # ============================================================================
-# MAIN FUNCTION (Enhanced with new visualization capabilities)
+# MAIN FUNCTION
 # ============================================================================
 
 def main():
-    print("Starting Enhanced Reinforcement Learning Training with Improved 2D Visualization...")
+    print("Starting Enhanced Reinforcement Learning Training with 2D Projection Visualizations...")
     
     # Create results folder
     current_time = time.strftime("%Y%m%d-%H%M%S")
-    results_folder = f"./enhanced_2d_results_{current_time}"
+    results_folder = f"./enhanced_2d_projection_results_{current_time}"
     if not os.path.exists(results_folder):
         os.makedirs(results_folder)
     
@@ -1129,14 +1257,14 @@ def main():
     plt.close()
     print(f"Training progress plot saved: {progress_path}")
     
-    # Enhanced evaluation with improved 2D visualization
-    print("Running enhanced evaluation with improved 2D visualization...")
+    # Enhanced evaluation with 2D projection visualizations
+    print("Running enhanced evaluation with 2D projection visualizations...")
     
-    # For faster execution, disable 3D by default (can be enabled by changing to True)
-    create_3d_visualizations = False  # Set to True if you want 3D visualizations
+    # Enable 2D projections (replaces 3D visualizations)
+    create_projection_visualizations = True
     
     final_rewards, final_dice_scores, comprehensive_results = run_enhanced_evaluation_loop(
-        model, eval_envs, results_folder, create_3d=create_3d_visualizations
+        model, eval_envs, results_folder, create_projections=create_projection_visualizations
     )
     
     # Summary statistics
@@ -1145,7 +1273,7 @@ def main():
     mean_dice = np.mean(final_dice_scores)
     std_dice = np.std(final_dice_scores)
     
-    print(f"\nENHANCED EVALUATION RESULTS:")
+    print(f"\nENHANCED EVALUATION RESULTS WITH 2D PROJECTIONS:")
     print(f"Mean reward across all environments: {mean_reward:.2f} ± {std_reward:.2f}")
     print(f"Mean Dice score across all environments: {mean_dice:.3f} ± {std_dice:.3f}")
     print(f"Individual rewards: {final_rewards}")
@@ -1186,10 +1314,10 @@ def main():
     
     plt.tight_layout()
     
-    final_summary_path = os.path.join(results_folder, 'enhanced_2d_final_evaluation_summary.png')
+    final_summary_path = os.path.join(results_folder, 'enhanced_2d_projection_final_evaluation_summary.png')
     plt.savefig(final_summary_path, dpi=150, bbox_inches='tight')
     plt.close()
-    print(f"Enhanced 2D final evaluation summary saved: {final_summary_path}")
+    print(f"Enhanced 2D projection final evaluation summary saved: {final_summary_path}")
     
     # Save comprehensive numerical results
     results_data = {
@@ -1204,22 +1332,19 @@ def main():
         'std_final_dice': std_dice,
         'training_time': training_time,
         'comprehensive_results': [result['results'] for result in comprehensive_results],
-        'visualization_types_created': ['enhanced_2d', 'detailed_analysis', 'progression_summary'] + (['3d_volume'] if create_3d_visualizations else [])
+        'visualization_types_created': ['enhanced_2d', 'projection_dots', 'projection_ablation', 'detailed_analysis', 'progression_summary']
     }
     
-    np.savez(os.path.join(results_folder, 'enhanced_2d_results_data.npz'), **results_data)
+    np.savez(os.path.join(results_folder, 'enhanced_2d_projection_results_data.npz'), **results_data)
     
     # Save summary report
-    with open(os.path.join(results_folder, 'enhanced_2d_summary.txt'), 'w') as f:
-        f.write("ENHANCED REINFORCEMENT LEARNING WITH IMPROVED 2D VISUALIZATION RESULTS\n")
+    with open(os.path.join(results_folder, 'enhanced_2d_projection_summary.txt'), 'w') as f:
+        f.write("ENHANCED REINFORCEMENT LEARNING WITH 2D PROJECTION VISUALIZATIONS RESULTS\n")
         f.write("=" * 80 + "\n\n")
         f.write(f"Training completed: {current_time}\n")
         f.write(f"Training time: {training_time:.2f} seconds\n")
         f.write(f"Total timesteps: {total_timesteps:,}\n")
-        f.write(f"Visualization types created: Enhanced 2D, Detailed Analysis, Progression Summary")
-        if create_3d_visualizations:
-            f.write(", 3D Volume Rendering")
-        f.write("\n\n")
+        f.write(f"Visualization types created: Enhanced 2D, 2D Projection Dots, 2D Projection Ablation, Detailed Analysis, Progression Summary\n\n")
         f.write(f"Final Evaluation Results:\n")
         f.write(f"Mean reward: {mean_reward:.2f} ± {std_reward:.2f}\n")
         f.write(f"Mean Dice score: {mean_dice:.3f} ± {std_dice:.3f}\n\n")
@@ -1227,17 +1352,14 @@ def main():
         for i, (reward, dice, comp_result) in enumerate(zip(final_rewards, final_dice_scores, comprehensive_results)):
             f.write(f"Patient {i+1}: Reward={reward:.2f}, Dice={dice:.3f}, Coverage={comp_result['results']['lesion_coverage_percentage']:.1f}%\n")
     
-    print(f"\nEnhanced training and evaluation complete!")
+    print(f"\nEnhanced training and evaluation with 2D projections complete!")
     print(f"All results saved in folder: {results_folder}")
     print(f"Features created:")
     print(f"  ✓ Enhanced 2D visualizations (improved slice selection for lesion visibility)")
+    print(f"  ✓ 2D projection visualizations (dots only and with ablation zones)")
     print(f"  ✓ Detailed quantitative analysis plots")
     print(f"  ✓ Sphere placement progression summaries")
     print(f"  ✓ Comprehensive JSON results for each patient")
-    if create_3d_visualizations:
-        print(f"  ✓ 3D volume renderings")
-    else:
-        print(f"  ⚪ 3D volume renderings (disabled for speed - set create_3d_visualizations=True to enable)")
 
 
 if __name__ == "__main__":

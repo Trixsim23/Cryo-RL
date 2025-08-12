@@ -327,7 +327,7 @@ def visualize_placement_projection_ablation(env, save_path=None, show=True, step
     
     placement_count = len(env.sphere_positions)
     ax.set_title(f'Dice: {dice_score:.3f}', 
-                fontsize=14, fontweight='bold')
+                fontsize=30, fontweight='bold')
     
     if save_path:
         plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white', pad_inches=0.02)
