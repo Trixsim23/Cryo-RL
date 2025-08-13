@@ -19,6 +19,7 @@ from stable_baselines3 import PPO
 from matplotlib.gridspec import GridSpec
 import tempfile
 from mpl_toolkits.mplot3d import Axes3D
+from matplotlib.patches import Circle
 
 # Import necessary functions
 from main_env import get_max_action_space_size, create_standardized_environments
@@ -54,7 +55,6 @@ def get_filtered_dataset(filtered_dir="./filtered_dataset"):
     
     return valid_patients
 
-
 def visualize_placement_projection_dots(env, save_path=None, show=True, step_info="", projection_axis='axial'):
     from mpl_toolkits.mplot3d import Axes3D
     from skimage import measure
@@ -69,7 +69,7 @@ def visualize_placement_projection_dots(env, save_path=None, show=True, step_inf
         try:
             verts_p, faces_p, _, _ = measure.marching_cubes(prostate_mask.astype(float), level=0.5)
             ax.plot_trisurf(verts_p[:, 0], verts_p[:, 1], verts_p[:, 2], 
-                           triangles=faces_p, color=[1, 0.4, 0.5], alpha=0.3, 
+                           triangles=faces_p, color=[0.4, 1, 0.4], alpha=0.15, 
                            linewidth=0, shade=True)
         except:
             pass
@@ -78,7 +78,7 @@ def visualize_placement_projection_dots(env, save_path=None, show=True, step_inf
         try:
             verts_l, faces_l, _, _ = measure.marching_cubes(lesion_mask.astype(float), level=0.5)
             ax.plot_trisurf(verts_l[:, 0], verts_l[:, 1], verts_l[:, 2], 
-                           triangles=faces_l, color=[0.4, 1, 0.8], alpha=0.8, 
+                           triangles=faces_l, color=[1, 0.4, 0.4], alpha=0.3, 
                            linewidth=0, shade=True)
         except:
             pass
@@ -105,20 +105,15 @@ def visualize_placement_projection_dots(env, save_path=None, show=True, step_inf
     
     for i, sphere_pos in enumerate(env.sphere_positions):
         x, y, z = sphere_pos
-        
-        top_z = max_z + 2  
-        ax.scatter(x, y, top_z, c='black', s=250, marker='o', edgecolors='white', 
-                linewidth=5, zorder=200, alpha=1.0)
-    
-    
-        ax.plot([x, x], [y, y], [z, top_z], 'k-', linewidth=8, alpha=0.4, zorder=150)
+        ax.scatter(x, y, z, c='blue', s=250, marker='o', edgecolors='white', 
+                linewidth=6, zorder=200, alpha=1.0, facecolors='blue')
     
     # Zoom in on the data
     ax.set_xlim(min_x, max_x)
     ax.set_ylim(min_y, max_y)
     ax.set_zlim(min_z, max_z)
     
-    ax.view_init(elev=70, azim=-0.3)
+    ax.view_init(elev=35, azim=45)
     
     ax.set_xticks([])
     ax.set_yticks([])
@@ -199,20 +194,20 @@ def visualize_placement_projection_ablation(env, save_path=None, show=True, step
     prostate_mask = env.mask_data > 0
     lesion_mask = env.lesion_data > 0
     
-    if np.any(prostate_mask):
-        try:
-            verts_p, faces_p, _, _ = measure.marching_cubes(prostate_mask.astype(float), level=0.5)
-            ax.plot_trisurf(verts_p[:, 0], verts_p[:, 1], verts_p[:, 2], 
-                           triangles=faces_p, color=[1, 0.4, 0.5], alpha=0.3, 
-                           linewidth=0, shade=True)
-        except:
-            pass
+    # if np.any(prostate_mask):
+    #     try:
+    #         verts_p, faces_p, _, _ = measure.marching_cubes(prostate_mask.astype(float), level=0.5)
+    #         ax.plot_trisurf(verts_p[:, 0], verts_p[:, 1], verts_p[:, 2], 
+    #                        triangles=faces_p, color=[0.4, 1, 0.4], alpha=0.05, 
+    #                        linewidth=0, shade=True)
+    #     except:
+    #         pass
     
     if np.any(lesion_mask):
         try:
             verts_l, faces_l, _, _ = measure.marching_cubes(lesion_mask.astype(float), level=0.5)
             ax.plot_trisurf(verts_l[:, 0], verts_l[:, 1], verts_l[:, 2], 
-                           triangles=faces_l, color=[0.4, 1, 0.8], alpha=0.8, 
+                           triangles=faces_l, color=[1, 0.4, 0.4], alpha=0.15, 
                            linewidth=0, shade=True)
         except:
             pass
@@ -225,7 +220,7 @@ def visualize_placement_projection_ablation(env, save_path=None, show=True, step
             try:
                 verts_a, faces_a, _, _ = measure.marching_cubes(ablation_mask.astype(float), level=0.5)
                 ax.plot_trisurf(verts_a[:, 0], verts_a[:, 1], verts_a[:, 2], 
-                               triangles=faces_a, color=[0.3, 0.6, 0.9], alpha=0.5, 
+                               triangles=faces_a, color=[0.3, 0.6, 0.9], alpha=0.25, 
                                linewidth=0, shade=True)
             except:
                 pass
@@ -251,18 +246,15 @@ def visualize_placement_projection_ablation(env, save_path=None, show=True, step
     
     for i, sphere_pos in enumerate(env.sphere_positions):
         x, y, z = sphere_pos
-        
-        top_z = max_z + 2  
-        ax.scatter(x, y, top_z, c='black', s=250, marker='o', edgecolors='white', 
-                linewidth=5, zorder=200, alpha=1.0)
-        ax.plot([x, x], [y, y], [z, top_z], 'k-', linewidth=8, alpha=0.4, zorder=150)
+        ax.scatter(x, y, z, c='blue', s=250, marker='o', edgecolors='white', 
+                linewidth=6, zorder=200, alpha=1.0, facecolors='blue')
     
 
     ax.set_xlim(min_x, max_x)
     ax.set_ylim(min_y, max_y)
     ax.set_zlim(min_z, max_z)
     
-    ax.view_init(elev=70, azim=-0.3)
+    ax.view_init(elev=35, azim=45)
     
 
     ax.set_xticks([])
@@ -297,23 +289,20 @@ def visualize_placement_projection_ablation(env, save_path=None, show=True, step
     
     ax.set_axis_off()
     
-    # Remove any remaining axis elements (with error handling)
     try:
         ax.xaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
         ax.yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
         ax.zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
         
-        # Remove tick lines
         ax.xaxis.set_tick_params(which='both', length=0)
         ax.yaxis.set_tick_params(which='both', length=0) 
         ax.zaxis.set_tick_params(which='both', length=0)
         
-        # Make axis lines transparent
         ax.xaxis.line.set_linewidth(0)
         ax.yaxis.line.set_linewidth(0)
         ax.zaxis.line.set_linewidth(0)
     except:
-        pass  # Some matplotlib versions may not have these attributes
+        pass
     
     if env.sphere_positions:
         sphere_mask = create_sphere_mask(env.sphere_positions, env.sphere_radius, env.mri_data.shape)
@@ -338,7 +327,6 @@ def visualize_placement_projection_ablation(env, save_path=None, show=True, step
         plt.close()
     
     return fig
-
 
 def evaluate_single_patient(model, env, patient_id):
     """Evaluate model on a single patient and return results."""
@@ -416,16 +404,16 @@ def create_projection_grid(results_list, save_folder, visualization_type="", tit
     rows, cols = 2, 4
     
     # SIZE CONTROL: Larger sizes for better visibility
-    individual_subplot_size = 10  
-    mask_figure_size = 32        
-    sphere_marker_size = 3000    
+    individual_subplot_size = 8  
+    mask_figure_size = 20       
+    sphere_marker_size = 1500    
     
     # Create temporary directory for individual images
     temp_dir = tempfile.mkdtemp()
     temp_projection_images = []
     temp_mask_images = []
     
-    print(f"Creating individual {visualization_type} projections and zoomed mask views for 4-patient grid...")
+    print(f"Creating individual {visualization_type} projections and MRI views for 4-patient grid...")
     
     # Generate individual projection images
     for i, result in enumerate(selected_results):
@@ -465,207 +453,208 @@ def create_projection_grid(results_list, save_folder, visualization_type="", tit
         temp_mask_path = os.path.join(temp_dir, f'masks_{i}.png')
         
         try:
+            # Find optimal slice that shows spheres
+            slice_idx = None
             
-            slice_idx = None  
-            
-            if slice_idx is None:
-                # Find slice that best shows both lesion and spheres
-                lesion_slices_with_content = []
+            if env.sphere_positions:
+                # Find slice that shows the most spheres
+                sphere_z_positions = [pos[2] for pos in env.sphere_positions]
                 
-                # Find all slices that contain lesion data
+                # Try slices around sphere positions
+                best_slice = None
+                max_visible_spheres = 0
+                
+                # Check slices around each sphere position
+                candidate_slices = set()
+                for sphere_z in sphere_z_positions:
+                    for offset in range(-3, 4):  # Check 7 slices around each sphere
+                        candidate_z = sphere_z + offset
+                        if 0 <= candidate_z < env.mri_data.shape[2]:
+                            candidate_slices.add(candidate_z)
+                
+                for z in candidate_slices:
+                    # Count visible spheres on this slice
+                    visible_spheres = sum(1 for pos in env.sphere_positions if abs(pos[2] - z) <= 2)
+                    
+                    # Also check for lesion content (use original lesion data)
+                    lesion_content = np.sum(env.lesion_data[:, :, z] > 0)
+                    
+                    # Score based on visible spheres and lesion content
+                    score = visible_spheres * 100 + lesion_content
+                    
+                    if visible_spheres > 0 and score > max_visible_spheres:
+                        max_visible_spheres = score
+                        best_slice = z
+                
+                slice_idx = best_slice if best_slice is not None else int(np.median(sphere_z_positions))
+                print(f"  Patient {selected_indices[i]+1}: Selected slice {slice_idx} with {sum(1 for pos in env.sphere_positions if abs(pos[2] - slice_idx) <= 2)} visible spheres")
+            else:
+                # No spheres, find slice with most lesion content
+                lesion_slices = []
                 for z in range(env.lesion_data.shape[2]):
-                    if np.any(env.lesion_data[:, :, z] > 0):
-                        lesion_volume_in_slice = np.sum(env.lesion_data[:, :, z] > 0)
-                        lesion_slices_with_content.append((z, lesion_volume_in_slice))
+                    lesion_content = np.sum(env.lesion_data[:, :, z] > 0)
+                    if lesion_content > 0:
+                        lesion_slices.append((z, lesion_content))
                 
-                if lesion_slices_with_content and env.sphere_positions:
-                    # Find slice that optimizes both lesion visibility and sphere proximity
-                    sphere_z_positions = [pos[2] for pos in env.sphere_positions]
-                    median_sphere_z = np.median(sphere_z_positions)
-                    
-                    # Score each lesion-containing slice based on lesion content and sphere proximity
-                    best_slice = None
-                    best_score = -1
-                    
-                    for z, lesion_vol in lesion_slices_with_content:
-                        # Score based on lesion volume and sphere proximity
-                        sphere_proximity_score = max(0, 5 - abs(z - median_sphere_z))  # Higher score for closer slices
-                        lesion_volume_score = lesion_vol / 100  # Normalize lesion volume
-                        
-                        total_score = lesion_volume_score + sphere_proximity_score
-                        
-                        if total_score > best_score:
-                            best_score = total_score
-                            best_slice = z
-                    
-                    slice_idx = best_slice if best_slice is not None else int(median_sphere_z)
-                    print(f"  Patient {selected_indices[i]+1}: Auto-selected slice {slice_idx} - optimized for lesion visibility and sphere proximity")
-                    
-                elif lesion_slices_with_content:
-                    
-                    slice_idx = max(lesion_slices_with_content, key=lambda x: x[1])[0]
-                    print(f"  Patient {selected_indices[i]+1}: Auto-selected slice {slice_idx} - based on maximum lesion content")
-                    
-                elif env.sphere_positions:
-                    
-                    z_positions = [pos[2] for pos in env.sphere_positions]
-                    slice_idx = int(np.median(z_positions))
-                    print(f"  Patient {selected_indices[i]+1}: Auto-selected slice {slice_idx} - based on sphere positions (no lesion visible)")
-                    
+                if lesion_slices:
+                    slice_idx = max(lesion_slices, key=lambda x: x[1])[0]
                 else:
-                   
                     slice_idx = env.mri_data.shape[2] // 2
-                    print(f"  Patient {selected_indices[i]+1}: Auto-selected slice {slice_idx} - using center slice (no spheres or lesions)")
+                
+                print(f"  Patient {selected_indices[i]+1}: Selected slice {slice_idx} based on lesion content")
             
-           
+            # Ensure slice_idx is within bounds
             slice_idx = max(0, min(slice_idx, env.mri_data.shape[2] - 1))
             
-            
+            # Create standardized MRI view
             fig_mask, ax_mask = plt.subplots(1, 1, figsize=(mask_figure_size, mask_figure_size))
             
-            
+            # Get the data for this slice - use ORIGINAL masks
             mri_slice = env.mri_data[:, :, slice_idx]
             mask_slice = env.mask_data[:, :, slice_idx].astype(float)
             lesion_slice = env.lesion_data[:, :, slice_idx].astype(float)
             
-          
+            # Standardized cropping with less aggressive cropping
+            target_size = 100  # Increased from 80 to reduce pixelation
+            
+            # Find region of interest based on original mask for consistent cropping
             if np.any(mask_slice > 0):
                 mask_coords = np.where(mask_slice > 0)
-                min_row, max_row = np.min(mask_coords[0]), np.max(mask_coords[0])
-                min_col, max_col = np.min(mask_coords[1]), np.max(mask_coords[1])
+                center_row = int(np.mean(mask_coords[0]))
+                center_col = int(np.mean(mask_coords[1]))
                 
+                # Calculate bounds for fixed size crop
+                half_size = target_size // 2
+                min_row = max(0, center_row - half_size)
+                max_row = min(mri_slice.shape[0], center_row + half_size)
+                min_col = max(0, center_col - half_size)
+                max_col = min(mri_slice.shape[1], center_col + half_size)
                 
-                padding = 15  
-                min_row = max(0, min_row - padding)
-                max_row = min(mri_slice.shape[0], max_row + padding)
-                min_col = max(0, min_col - padding)
-                max_col = min(mri_slice.shape[1], max_col + padding)
+                # Adjust if we hit boundaries
+                if max_row - min_row < target_size:
+                    if min_row == 0:
+                        max_row = min(mri_slice.shape[0], target_size)
+                    elif max_row == mri_slice.shape[0]:
+                        min_row = max(0, mri_slice.shape[0] - target_size)
                 
+                if max_col - min_col < target_size:
+                    if min_col == 0:
+                        max_col = min(mri_slice.shape[1], target_size)
+                    elif max_col == mri_slice.shape[1]:
+                        min_col = max(0, mri_slice.shape[1] - target_size)
                 
+                # Crop to standardized size
                 mri_slice_cropped = mri_slice[min_row:max_row, min_col:max_col]
                 mask_slice_cropped = mask_slice[min_row:max_row, min_col:max_col]
                 lesion_slice_cropped = lesion_slice[min_row:max_row, min_col:max_col]
                 
-                print(f"  Patient {selected_indices[i]+1}: Cropped from {mri_slice.shape} to {mri_slice_cropped.shape}")
+                print(f"  Patient {selected_indices[i]+1}: Standardized crop to {mri_slice_cropped.shape}")
                 
             else:
+                # Use center crop if no mask
+                center_row, center_col = mri_slice.shape[0] // 2, mri_slice.shape[1] // 2
+                half_size = target_size // 2
+                min_row = max(0, center_row - half_size)
+                max_row = min(mri_slice.shape[0], center_row + half_size)
+                min_col = max(0, center_col - half_size)
+                max_col = min(mri_slice.shape[1], center_col + half_size)
                 
-                mri_slice_cropped = mri_slice
-                mask_slice_cropped = mask_slice
-                lesion_slice_cropped = lesion_slice
+                mri_slice_cropped = mri_slice[min_row:max_row, min_col:max_col]
+                mask_slice_cropped = mask_slice[min_row:max_row, min_col:max_col]
+                lesion_slice_cropped = lesion_slice[min_row:max_row, min_col:max_col]
                 min_row, min_col = 0, 0
-                print(f"  Patient {selected_indices[i]+1}: No mask found, using full slice")
+                print(f"  Patient {selected_indices[i]+1}: Center crop to {mri_slice_cropped.shape}")
             
-            
-            mask_unique = np.unique(mask_slice_cropped)
-            lesion_unique = np.unique(lesion_slice_cropped)
-            print(f"  Patient {selected_indices[i]+1}: Mask values: {mask_unique}, Lesion values: {lesion_unique}")
-            
-           
+            # Normalize MRI data
             if np.max(mri_slice_cropped) > np.min(mri_slice_cropped):
                 mri_normalized = (mri_slice_cropped - np.min(mri_slice_cropped)) / (np.max(mri_slice_cropped) - np.min(mri_slice_cropped))
             else:
                 mri_normalized = mri_slice_cropped
             
-            if np.max(mask_slice_cropped) > 0:
-                mask_slice_cropped = mask_slice_cropped / np.max(mask_slice_cropped)
-            if np.max(lesion_slice_cropped) > 0:
-                lesion_slice_cropped = lesion_slice_cropped / np.max(lesion_slice_cropped)
+            # Normalize masks
+            mask_slice_cropped = np.clip(mask_slice_cropped, 0, 1)
+            lesion_slice_cropped = np.clip(lesion_slice_cropped, 0, 1)
             
-            # Display MRI as background in grayscale
+            # Display MRI as background
             ax_mask.imshow(mri_normalized, cmap='gray', vmin=0, vmax=1)
             
-            # Overlay masks on top of MRI
-            # Create masked arrays - only mask where values are very small
-            mask_masked = np.ma.masked_where(mask_slice_cropped <= 0.01, mask_slice_cropped)
-            lesion_masked = np.ma.masked_where(lesion_slice_cropped <= 0.01, lesion_slice_cropped)
+            # Overlay masks with decreased opacity (green for prostate, red for lesion)
+            mask_masked = np.ma.masked_where(mask_slice_cropped < 0.001, mask_slice_cropped)
+            lesion_masked = np.ma.masked_where(lesion_slice_cropped < 0.001, lesion_slice_cropped)
             
-            # Show masks overlaid on MRI with enhanced visibility
-            if np.max(mask_slice_cropped) > 0:
-                ax_mask.imshow(mask_masked, cmap='Blues', alpha=0.4, vmin=0, vmax=1)  # Semi-transparent blue for prostate
-            else:
-                print(f"  Patient {selected_indices[i]+1}: No prostate mask content on slice {slice_idx}")
+            # Reduced opacity for prostate (0.2) and higher for lesion (0.4)
+            if np.any(mask_slice_cropped > 0):
+                ax_mask.imshow(mask_masked, cmap='Greens', alpha=0.2, vmin=0, vmax=1)
                 
-            if np.max(lesion_slice_cropped) > 0:
-                ax_mask.imshow(lesion_masked, cmap='Reds', alpha=0.6, vmin=0, vmax=1)  # More visible red for lesions
-            else:
-                print(f"  Patient {selected_indices[i]+1}: No lesion mask content on slice {slice_idx}")
+            if np.any(lesion_slice_cropped > 0):
+                ax_mask.imshow(lesion_masked, cmap='Reds', alpha=0.4, vmin=0, vmax=1)
             
-            # Add debug info to track what's being displayed
-            mask_pixels = np.sum(mask_slice_cropped > 0.01)
-            lesion_pixels = np.sum(lesion_slice_cropped > 0.01)
-            sphere_count = len([pos for pos in env.sphere_positions 
-                              if abs(pos[2] - slice_idx) <= 4])
-            
-            print(f"  Patient {selected_indices[i]+1}: Slice {slice_idx}, "
-                  f"Prostate pixels: {mask_pixels}, Lesion pixels: {lesion_pixels}, "
-                  f"Visible spheres: {sphere_count}")
-            
-            # Add sphere markers - MUCH larger dots with better positioning for cropped view
+            # Add spheres with variable sizes based on distance from slice
             spheres_added = 0
             for j, sphere_pos in enumerate(env.sphere_positions):
                 x, y, z = sphere_pos
                 z_distance = abs(z - slice_idx)
-                if z_distance <= 3:
-                    alpha = max(0.8, 1.0 - (z_distance / 3.0))  # Higher minimum alpha for better visibility
+                
+                # Only show spheres within reasonable distance
+                if z_distance <= env.sphere_radius:
+                    # Calculate circle radius based on 3D geometry
+                    # For a sphere with radius R at distance d from slice, 
+                    # the circle radius is sqrt(R^2 - d^2)
+                    if z_distance <= env.sphere_radius:
+                        circle_radius = np.sqrt(env.sphere_radius**2 - z_distance**2)
+                    else:
+                        continue  # Skip if too far
+                    
+                    alpha = max(0.6, 1.0 - (z_distance / env.sphere_radius))
                     
                     # Adjust coordinates for cropped view
                     x_cropped = x - min_row
                     y_cropped = y - min_col
                     
-                    # Validate coordinates are within cropped bounds
+                    # Check if within cropped bounds
                     if (0 <= x_cropped < mri_slice_cropped.shape[0] and 
                         0 <= y_cropped < mri_slice_cropped.shape[1]):
-                        # Much larger sphere markers for zoomed view with yellow color for high contrast
-                        ax_mask.scatter(y_cropped, x_cropped, s=sphere_marker_size, c='yellow', marker='o', 
-                                       edgecolors='black', linewidth=10, alpha=alpha, zorder=10)
+                        
+                        # Add circle with size based on actual 3D intersection
+                        circle = Circle((y_cropped, x_cropped), circle_radius, 
+                                      fill=False, color='blue', linewidth=3, alpha=alpha)
+                        ax_mask.add_patch(circle)
+                        
+                        # Add center dot at actual sphere position
+                        ax_mask.scatter(y_cropped, x_cropped, s=50, c='blue', marker='o', 
+                                       edgecolors='white', linewidth=2, alpha=alpha, zorder=10)
                         spheres_added += 1
             
-            print(f"  Patient {selected_indices[i]+1}: Added {spheres_added} sphere markers to zoomed MRI view")
+            print(f"  Patient {selected_indices[i]+1}: Added {spheres_added} sphere visualizations")
             
-            # Fallback: If no masks are visible, show debug information
-            if mask_pixels == 0 and lesion_pixels == 0:
-                print(f"  WARNING: No mask content visible for Patient {selected_indices[i]+1}")
-                print(f"    Original mask range: {np.min(env.mask_data)} to {np.max(env.mask_data)}")
-                print(f"    Original lesion range: {np.min(env.lesion_data)} to {np.max(env.lesion_data)}")
-                print(f"    Mask shape: {env.mask_data.shape}, Lesion shape: {env.lesion_data.shape}")
-                
-                # Show text indicating the issue with larger font
-                ax_mask.text(0.5, 0.5, f'Patient {selected_indices[i]+1}\nNo mask data visible\nSlice: {slice_idx}', 
-                           ha='center', va='center', transform=ax_mask.transAxes, 
-                           fontsize=32, fontweight='bold', color='red',
-                           bbox=dict(boxstyle="round,pad=0.5", facecolor="yellow", alpha=0.8))
-            
-            # Remove axis and set background
+            # Set background and remove axes
             ax_mask.set_xticks([])
             ax_mask.set_yticks([])
             ax_mask.axis('off')
-            ax_mask.set_facecolor('black')  # Black background for medical imaging
-            
-            # Set black background for figure (medical imaging standard)
+            ax_mask.set_facecolor('black')
             fig_mask.patch.set_facecolor('black')
             
-            # Save with higher DPI for better quality in zoomed view
-            plt.savefig(temp_mask_path, dpi=450, bbox_inches='tight', facecolor='black', pad_inches=0.01)
+            # Save with consistent settings
+            plt.savefig(temp_mask_path, dpi=300, bbox_inches='tight', facecolor='black', pad_inches=0.01)
             plt.close(fig_mask)
             
             temp_mask_images.append(temp_mask_path)
-            print(f"  ✓ Created zoomed MRI+mask view for Patient {selected_indices[i]+1}")
+            print(f"  ✓ Created standardized MRI view for Patient {selected_indices[i]+1}")
             
         except Exception as e:
-            print(f"  ✗ Error creating zoomed MRI+mask view for Patient {selected_indices[i]+1}: {e}")
+            print(f"  ✗ Error creating MRI view for Patient {selected_indices[i]+1}: {e}")
             temp_mask_images.append(None)
     
-    # Create the main grid with larger size to accommodate bigger mask views
+    # Create the main grid with reduced spacing
     fig = plt.figure(figsize=(cols * individual_subplot_size, rows * individual_subplot_size), facecolor='white')
     
-    # Create custom grid layout with more space for the mask row
+    # Reduced spacing for tighter layout
     gs = fig.add_gridspec(rows, cols, 
-                         left=0.02, bottom=0.02, right=0.98, top=0.98,
-                         wspace=0.03, hspace=0.03,  # Reduced spacing for more image area
-                         height_ratios=[1, 1.2])    # Make mask row slightly taller
+                         left=0.01, bottom=0.01, right=0.99, top=0.99,
+                         wspace=0.01, hspace=0.01,  # Much tighter spacing
+                         height_ratios=[1, 1])
     
-    # First row: projection images (dots or ablation)
+    # First row: projection images
     for i in range(cols):
         ax = fig.add_subplot(gs[0, i])
         
@@ -677,21 +666,19 @@ def create_projection_grid(results_list, save_folder, visualization_type="", tit
                 print(f"Error loading projection image for Patient {selected_indices[i]+1}: {e}")
                 ax.text(0.5, 0.5, f'Error\nPatient {selected_indices[i]+1}', 
                        ha='center', va='center', transform=ax.transAxes, 
-                       fontsize=24, fontweight='bold')  # Increased font size
+                       fontsize=24, fontweight='bold')
         else:
             ax.set_visible(False)
         
-        # Remove axis elements and set white background
         ax.set_xticks([])
         ax.set_yticks([])
         ax.axis('off')
         ax.set_facecolor('white')
         
-        # Remove any spines
         for spine in ax.spines.values():
             spine.set_visible(False)
     
-    # Second row: ZOOMED MRI+mask views (larger and more prominent)
+    # Second row: MRI views
     for i in range(cols):
         ax = fig.add_subplot(gs[1, i])
         
@@ -700,26 +687,24 @@ def create_projection_grid(results_list, save_folder, visualization_type="", tit
                 img = mpimg.imread(temp_mask_images[i])
                 ax.imshow(img)
             except Exception as e:
-                print(f"Error loading MRI+mask image for Patient {selected_indices[i]+1}: {e}")
+                print(f"Error loading MRI image for Patient {selected_indices[i]+1}: {e}")
                 ax.text(0.5, 0.5, f'Error\nPatient {selected_indices[i]+1}', 
                        ha='center', va='center', transform=ax.transAxes,
-                       fontsize=24, fontweight='bold')  # Increased font size
+                       fontsize=24, fontweight='bold')
         else:
             ax.set_visible(False)
         
-        # Remove axis elements and set black background for medical imaging
         ax.set_xticks([])
         ax.set_yticks([])
         ax.axis('off')
         ax.set_facecolor('black')
         
-        # Remove any spines
         for spine in ax.spines.values():
             spine.set_visible(False)
     
-    # Save the grid with higher DPI for better quality
-    save_path = os.path.join(save_folder, f'projection_{visualization_type}_grid_4patients_mri_overlay.png')
-    fig.savefig(save_path, dpi=400, bbox_inches='tight', facecolor='white', pad_inches=0.02)
+    # Save with higher DPI
+    save_path = os.path.join(save_folder, f'projection_{visualization_type}_grid_4patients_improved.png')
+    fig.savefig(save_path, dpi=400, bbox_inches='tight', facecolor='white', pad_inches=0.01)
     plt.close(fig)
     
     # Clean up temporary files
@@ -728,7 +713,7 @@ def create_projection_grid(results_list, save_folder, visualization_type="", tit
             os.remove(temp_path)
     os.rmdir(temp_dir)
     
-    print(f"4-patient MRI+mask overlay grid saved: {save_path}")
+    print(f"Improved 4-patient grid saved: {save_path}")
     return save_path
 
 def create_individual_projections(results_list, save_folder):

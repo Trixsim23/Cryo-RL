@@ -27,13 +27,13 @@ def enhanced_visualize_spheres_with_numbers_fixed(env, slice_idx=None, save_path
     # Call the original function with sanitized step_info
     return original_viz(env, slice_idx, save_path, show, step_info_sanitized)
 
-# Import additional visualization functions from main_agent.py
+# Import additional visualization functions from agent_vis_2.py
 try:
-    from main_agent import (
-        enhanced_visualize_spheres_with_numbers,
-        visualize_placement_projection_ablation,
+    from main_agent  import (
+        visualize_multi_view_spheres,
+        visualize_3d_volume_rendering,
         visualize_individual_step_placement,
-        create_final_comprehensive_evaluation_2d_only
+        create_final_comprehensive_evaluation
     )
     ADVANCED_VIS_AVAILABLE = True
     print("✓ Advanced visualization functions imported successfully")
@@ -815,7 +815,7 @@ class InteractivePlacementGUI:
         ttk.Button(btn_frame, text="Close", command=window.destroy).pack(side='left', padx=5)
     
     def _visualize_placement_session(self, session):
-        """Enhanced visualize a specific placement session with 2D projection visualization"""
+        """Enhanced visualize a specific placement session with multiple visualization options"""
         if self.collector.current_patient_data is None:
             messagebox.showwarning("Warning", "Patient data not loaded!")
             return
@@ -848,8 +848,8 @@ class InteractivePlacementGUI:
                 "Visualization Options", 
                 "Choose visualization type:\n\n"
                 "• Yes: Enhanced 2D Visualization (Original)\n" 
-                "• No: 2D Projection with Ablation Zones\n"
-                "• Cancel: Enhanced 2D (Fallback)"
+                "• No: Multi-View Medical Imaging\n"
+                "• Cancel: 3D Volume Rendering"
             )
             
             try:
@@ -863,24 +863,21 @@ class InteractivePlacementGUI:
                         step_info=step_info_raw  # Use original, wrapper will sanitize
                     )
                 elif choice is False:
-                    # 2D Projection with ablation zones
-                    self.update_info("Creating 2D projection with ablation zones...")
-                    visualize_placement_projection_ablation(
+                    # Multi-view visualization
+                    visualize_multi_view_spheres(
                         env=temp_env,
                         save_path=None,
                         show=True,
-                        step_info=step_info,
-                        projection_axis='axial'
+                        step_info=step_info
                     )
                 elif choice is None:
-                    # Fallback to enhanced 2D
-                    self.update_info("Using enhanced 2D visualization...")
-                    enhanced_visualize_spheres_with_numbers_fixed(
+                    # 3D visualization
+                    self.update_info("Creating 3D visualization - this may take a moment...")
+                    visualize_3d_volume_rendering(
                         env=temp_env,
-                        slice_idx=slice_idx,
                         save_path=None,
                         show=True,
-                        step_info=step_info_raw
+                        step_info=step_info
                     )
             except Exception as e:
                 messagebox.showerror("Visualization Error", f"Failed to create visualization: {str(e)}")
@@ -962,41 +959,39 @@ class InteractivePlacementGUI:
             )
             viz_paths['Enhanced 2D'] = enhanced_path
             
-            # 2. 2D Projection with Ablation (replacing Multi-view)
-            projection_path = os.path.join(results_folder, f'projection_ablation_{self.collector.current_patient}.png')
-            visualize_placement_projection_ablation(
+            # 2. Multi-view
+            multiview_path = os.path.join(results_folder, f'multiview_{self.collector.current_patient}.png')
+            visualize_multi_view_spheres(
                 env=temp_env,
-                save_path=projection_path,
+                save_path=multiview_path,
                 show=False,
-                step_info=step_info,
-                projection_axis='axial'
+                step_info=step_info
             )
-            viz_paths['2D Projection Ablation'] = projection_path
+            viz_paths['Multi-view'] = multiview_path
             
-            # 3. 2D Projection with Ablation (optional - computationally cheap)
-            create_projection = messagebox.askyesno("2D Projection Visualization", 
-                                          "Create 2D projection with ablation zones?\n\n"
-                                          "This provides detailed ablation zone visualization.")
+            # 3. 3D Volume (optional - computationally expensive)
+            create_3d = messagebox.askyesno("3D Visualization", 
+                                          "Create 3D volume rendering?\n\n"
+                                          "This may take some time but provides detailed 3D views.")
             
-            if create_projection:
-                projection_path = os.path.join(results_folder, f'projection_ablation_{self.collector.current_patient}.png')
+            if create_3d:
+                volume_3d_path = os.path.join(results_folder, f'3d_volume_{self.collector.current_patient}.png')
                 try:
-                    visualize_placement_projection_ablation(
+                    visualize_3d_volume_rendering(
                         env=temp_env,
-                        save_path=projection_path,
+                        save_path=volume_3d_path,
                         show=False,
-                        step_info=step_info,
-                        projection_axis='axial'
+                        step_info=step_info
                     )
-                    viz_paths['2D Projection Ablation'] = projection_path
-                    self.update_info("✓ 2D projection with ablation zones created")
+                    viz_paths['3D Volume'] = volume_3d_path
+                    self.update_info("✓ 3D volume rendering created")
                 except Exception as e:
-                    self.update_info(f"⚠ 2D projection visualization failed: {str(e)}")
+                    self.update_info(f"⚠ 3D visualization failed: {str(e)}")
             
             # 4. Create comprehensive final evaluation
             try:
-                final_results = create_final_comprehensive_evaluation_2d_only(
-                    temp_env, results_folder, self.collector.current_patient, dice_score, create_projections=create_projection
+                final_results = create_final_comprehensive_evaluation(
+                    temp_env, results_folder, self.collector.current_patient, dice_score, create_3d=create_3d
                 )
                 viz_paths.update(final_results)
                 self.update_info("✓ Comprehensive final evaluation created")
@@ -1231,8 +1226,8 @@ def main():
     if not ADVANCED_VIS_AVAILABLE:
         print("\n" + "⚠"*50)
         print("NOTICE: Advanced visualization functions not available!")
-        print("To enable 2D projection visualizations:")
-        print("1. Make sure 'main_agent.py' is in the same directory")
+        print("To enable 3D visualizations and multi-view imaging:")
+        print("1. Make sure 'agent_vis_2.py' is in the same directory")
         print("2. Ensure all required dependencies are installed")
         print("3. Only basic enhanced 2D visualization will be available")
         print("⚠"*50 + "\n")
@@ -1284,10 +1279,11 @@ def main():
         print("✓ Detailed success messages with coverage breakdown")
         print("✓ Enhanced analysis with 6-panel visualization")
         if ADVANCED_VIS_AVAILABLE:
-            print("✓ 2D projection with ablation zone visualization")
+            print("✓ Multi-view medical imaging (sagittal, coronal, axial)")
+            print("✓ 3D volume rendering capabilities")
             print("✓ Comprehensive analysis generation")
         else:
-            print("⚠ Advanced visualizations not available (check main_agent.py import)")
+            print("⚠ Advanced visualizations not available (check agent_vis_2.py import)")
         print("\n📋 Instructions:")
         print("1. Select a patient from the dropdown")
         print("2. Enter your user ID")
