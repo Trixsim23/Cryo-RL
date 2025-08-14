@@ -55,7 +55,7 @@ def get_filtered_dataset(filtered_dir="./filtered_dataset"):
     
     return valid_patients
 
-def visualize_placement_projection_dots(env, save_path=None, show=True, step_info="", projection_axis='axial'):
+def visualize_placement_projection_dots(env, save_path=None, show=True, step_info="", projection_axis='axial', view_params=None):
     from mpl_toolkits.mplot3d import Axes3D
     from skimage import measure
     
@@ -113,7 +113,11 @@ def visualize_placement_projection_dots(env, save_path=None, show=True, step_inf
     ax.set_ylim(min_y, max_y)
     ax.set_zlim(min_z, max_z)
     
-    ax.view_init(elev=35, azim=45)
+    # Set view based on parameters
+    if view_params:
+        ax.view_init(elev=view_params['elev'], azim=view_params['azim'])
+    else:
+        ax.view_init(elev=35, azim=45)  # Default isometric view
     
     ax.set_xticks([])
     ax.set_yticks([])
@@ -121,16 +125,13 @@ def visualize_placement_projection_dots(env, save_path=None, show=True, step_inf
     ax.grid(False)
     ax.set_facecolor('white')
     
-   
     ax.set_xlabel('')
     ax.set_ylabel('')
     ax.set_zlabel('')
     
-    
     ax.xaxis.pane.fill = False
     ax.yaxis.pane.fill = False
     ax.zaxis.pane.fill = False
-    
     
     ax.xaxis.pane.set_edgecolor('white')
     ax.yaxis.pane.set_edgecolor('white')
@@ -151,12 +152,10 @@ def visualize_placement_projection_dots(env, save_path=None, show=True, step_inf
         ax.yaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
         ax.zaxis.line.set_color((1.0, 1.0, 1.0, 0.0))
         
-        # Remove tick lines
         ax.xaxis.set_tick_params(which='both', length=0)
         ax.yaxis.set_tick_params(which='both', length=0) 
         ax.zaxis.set_tick_params(which='both', length=0)
         
-        # Make axis lines transparent
         ax.xaxis.line.set_linewidth(0)
         ax.yaxis.line.set_linewidth(0)
         ax.zaxis.line.set_linewidth(0)
@@ -184,7 +183,7 @@ def visualize_placement_projection_dots(env, save_path=None, show=True, step_inf
     return fig
 
 
-def visualize_placement_projection_ablation(env, save_path=None, show=True, step_info="", projection_axis='axial'):
+def visualize_placement_projection_ablation(env, save_path=None, show=True, step_info="", projection_axis='axial', view_params=None):
     from mpl_toolkits.mplot3d import Axes3D
     from skimage import measure
     
@@ -193,15 +192,6 @@ def visualize_placement_projection_ablation(env, save_path=None, show=True, step
     
     prostate_mask = env.mask_data > 0
     lesion_mask = env.lesion_data > 0
-    
-    # if np.any(prostate_mask):
-    #     try:
-    #         verts_p, faces_p, _, _ = measure.marching_cubes(prostate_mask.astype(float), level=0.5)
-    #         ax.plot_trisurf(verts_p[:, 0], verts_p[:, 1], verts_p[:, 2], 
-    #                        triangles=faces_p, color=[0.4, 1, 0.4], alpha=0.05, 
-    #                        linewidth=0, shade=True)
-    #     except:
-    #         pass
     
     if np.any(lesion_mask):
         try:
@@ -225,7 +215,6 @@ def visualize_placement_projection_ablation(env, save_path=None, show=True, step
             except:
                 pass
     
-   
     if np.any(prostate_mask):
         prostate_coords = np.where(prostate_mask)
         min_x, max_x = np.min(prostate_coords[0]), np.max(prostate_coords[0])
@@ -248,14 +237,16 @@ def visualize_placement_projection_ablation(env, save_path=None, show=True, step
         x, y, z = sphere_pos
         ax.scatter(x, y, z, c='blue', s=250, marker='o', edgecolors='white', 
                 linewidth=6, zorder=200, alpha=1.0, facecolors='blue')
-    
 
     ax.set_xlim(min_x, max_x)
     ax.set_ylim(min_y, max_y)
     ax.set_zlim(min_z, max_z)
     
-    ax.view_init(elev=35, azim=45)
-    
+    # Set view based on parameters
+    if view_params:
+        ax.view_init(elev=view_params['elev'], azim=view_params['azim'])
+    else:
+        ax.view_init(elev=35, azim=45)  # Default isometric view
 
     ax.set_xticks([])
     ax.set_yticks([])
@@ -267,22 +258,18 @@ def visualize_placement_projection_ablation(env, save_path=None, show=True, step
     ax.set_ylabel('')
     ax.set_zlabel('')
     
- 
     ax.xaxis.pane.fill = False
     ax.yaxis.pane.fill = False
     ax.zaxis.pane.fill = False
     
-   
     ax.xaxis.pane.set_edgecolor('white')
     ax.yaxis.pane.set_edgecolor('white')
     ax.zaxis.pane.set_edgecolor('white')
     
-  
     ax.xaxis.pane.set_alpha(0)
     ax.yaxis.pane.set_alpha(0)
     ax.zaxis.pane.set_alpha(0)
     
- 
     ax.xaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
     ax.yaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
     ax.zaxis._axinfo["grid"]['color'] = (1, 1, 1, 0)
@@ -365,7 +352,6 @@ def evaluate_single_patient(model, env, patient_id):
         'sphere_positions': env.sphere_positions.copy()
     }
 
-
 def create_projection_grid(results_list, save_folder, visualization_type="", title="Projection Grid"):
     """Create a grid of projection visualizations by first creating individual images."""
     import matplotlib.image as mpimg
@@ -423,6 +409,12 @@ def create_projection_grid(results_list, save_folder, visualization_type="", tit
         
         step_info = f"(Dice: {dice_score:.3f}, Cov: {coverage:.1f}%)"
         
+        # Set different view parameters based on sample index
+        if i < 2:  # First two samples: keep isometric view
+            view_params = {'elev': 35, 'azim': 45}
+        else:  # Last two samples: slight rotation from 2D view
+            view_params = {'elev': 60, 'azim': 15}
+        
         # Create projection image
         temp_proj_path = os.path.join(temp_dir, f'{visualization_type}_{i}.png')
         
@@ -432,14 +424,16 @@ def create_projection_grid(results_list, save_folder, visualization_type="", tit
                     env=env,
                     save_path=temp_proj_path,
                     show=False,
-                    step_info=step_info
+                    step_info=step_info,
+                    view_params=view_params
                 )
             elif visualization_type == "ablation":
                 visualize_placement_projection_ablation(
                     env=env,
                     save_path=temp_proj_path,
                     show=False,
-                    step_info=step_info
+                    step_info=step_info,
+                    view_params=view_params
                 )
             
             temp_projection_images.append(temp_proj_path)
